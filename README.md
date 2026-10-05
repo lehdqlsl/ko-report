@@ -7,7 +7,11 @@
 
 | 결함 카드 (어두운 화면) | PDF 한 쪽 (A4, 쪽 번호 포함) |
 |---|---|
-| <img src="assets/qa-html-dark.png" alt="결함 카드 어두운 화면" width="420"> | <img src="assets/incident-pdf-page.png" alt="장애 보고 PDF 2쪽" width="300"> |
+| <img src="assets/qa-html-dark.png" alt="결함 카드 어두운 화면" width="420"> | <img src="assets/incident-pdf-page.png" alt="장애 보고 PDF 1쪽" width="300"> |
+
+넓은 화면에서 돌려 읽을 문서는 `layout: web` 으로 낸다. 왼쪽 목차가 따라오고 결론이 첫 화면을 채운다. PDF 로 내면 위와 같은 A4 모양이 된다.
+
+![web 레이아웃 첫 화면](assets/web-layout.png)
 
 위 화면은 가상의 쇼핑몰 "솔방울마켓"으로 만든 예시다. 원고와 결과물은 [`examples/`](examples/)에 있다.
 
@@ -21,12 +25,15 @@
 | proposal (제안·결정 요청) | 상대가 골라야 할 것이 있을 때 | 제안 하나와 기한 |
 | analysis (분석) | 데이터를 보고 판단 | 핵심 수치와 해석 |
 | incident (장애) | 장애 경과와 재발 방지 | 영향 시간·범위, 현재 상태 |
+| policy (정책) | 규칙·권한·결정을 정해 두는 문서 | 규칙 수, 결정 수, 확인 요청 |
+| spec (화면 설계) | 화면설계서, 스토리보드, 화면 모음 | 화면 수, 흐름 수, 확인 요청 |
 
 - 어느 종류든 첫 절은 결론이다. 숫자 타일 2~4개와 3줄 요약으로 시작한다.
-- `check.py` 가 분량, 결론 우선, AI 티 표현, 평서형 말투를 세고 대외용이면 경로·커밋·IP·화살표까지 막는다. `READY` 가 나와야 끝난다.
+- `check.py` 가 분량(산문과 표까지 합친 글자), 결론 우선, AI 티 표현, 평서형 말투를 세고 대외용이면 경로·커밋·IP·화살표까지 막는다. `READY` 가 나와야 끝난다.
+- 빌드한 뒤 `preview.py` 가 1280px·390px 화면을 찍어 가로 넘침과 글자가 세로로 쌓인 표 칸을 찾고, `pdf.py` 가 쪽마다 얼마나 찼는지 재서 큰 빈자리와 거의 빈 마지막 쪽을 알린다.
 - 스타일은 `report.css` 하나뿐이고 원고에서 바꿀 수 없다. 밝은 화면과 어두운 화면을 모두 지원한다.
 - 이미지까지 HTML 안에 들어가서 파일 하나만 주고받으면 된다.
-- QA 보고에서는 `capture.py` 가 필요한 영역만 2배 해상도로 찍고, 결함은 관찰·기대·증거·조치 카드로 남는다.
+- QA 보고에서는 `capture.py` 가 필요한 영역만 2배 해상도로 찍고, 결함은 관찰·기대·증거·조치 카드로 남는다. 코드만 읽은 검수는 `evidence: code` 로 두고 증거에 코드를 넣는다.
 
 ## 설치
 
@@ -61,8 +68,8 @@ ln -s "$PWD/ko-report/plugins/ko-report/skills/report" ~/.claude/skills/report
 1. 종류·독자·결론·기준·형식을 한 줄로 알리고 바로 진행 ("QA 보고 · 내부용 · 결론은 '결함 3건 중 1건 남음' · 기준 스테이징 v2.3.1")
 2. 종류별 틀을 복사해 원고(md)를 쓴다. 모르는 값은 지어내지 않고 `[확인 필요: 무엇]` 으로 남긴다
 3. `check.py` 가 `READY` 가 될 때까지 원고를 고친다
-4. HTML 로 빌드하고, 필요하면 PDF 로 낸다
-5. 1280px·390px 화면과 PDF 쪽 이미지를 직접 보고, 결과 파일·검사 판정·빈칸·화면 확인 결과를 보고한다
+4. HTML 로 빌드하고 `preview.py` 로 화면 두 폭을 찍는다. 필요하면 PDF 로 내고 쪽 품질을 본다
+5. 찍은 화면과 PDF 쪽 이미지를 직접 보고, 결과 파일·검사 판정·빈칸·화면 확인 결과를 보고한다
 
 ## 원고 모양
 
@@ -95,19 +102,20 @@ basis: 스테이징 · v2.3.1 · 10/5 오전
 :::
 ```
 
-블록은 숫자 타일(`tiles`), 강조 상자(`callout`), 캡처 묶음(`shots`), 결함 카드(`defect`), 막대 그래프(`bars`) 다섯 가지다. 표 칸에 "통과", "실패", "진행" 같은 상태 단어를 쓰면 색 딱지가 된다. 전체 문법은 [`references/components.md`](plugins/ko-report/skills/report/references/components.md).
+블록은 숫자 타일(`tiles`), 강조 상자(`callout`), 캡처 묶음(`shots`), 결함 카드(`defect`), 막대 그래프(`bars`), 차트(`chart` bar·line·donut), 흐름 단계(`steps`), 화면 카드(`screen`) 여덟 가지다. 머리글이 상태·결과·판정인 열에 "통과", "실패", "진행" 같은 상태 단어를 쓰면 색 딱지가 된다. `[확인 필요: 무엇]` 은 어디에 있든 노랗게 남는다. 긴 절 제목은 `## 긴 제목 | 목차 이름` 으로 목차를 짧게 한다. 전체 문법은 [`references/components.md`](plugins/ko-report/skills/report/references/components.md).
 
 ## 직접 돌리기
 
 ```bash
 S=plugins/ko-report/skills/report/scripts
 python3 $S/check.py 원고.md
-uv run --with markdown --with pillow python $S/build.py 원고.md -o 원고.html
-uv run --with playwright --with pypdf --with pypdfium2 python $S/pdf.py 원고.html --pngs
-uv run --with playwright python $S/capture.py shots.txt -o shots/      # QA 캡처
+uv run --with markdown --with pillow python $S/build.py 원고.md -o 원고.html      # --layout web 으로 한 번만 바꿔 낼 수 있음
+uv run --with playwright python $S/preview.py 원고.html                          # 1280·390 캡처와 깨짐 검사
+uv run --with playwright --with pypdf --with pypdfium2 python $S/pdf.py 원고.html --pngs   # 쪽 그림은 원고_pages/
+uv run --with playwright python $S/capture.py shots.txt -o shots/ --hide .toast  # QA 캡처
 ```
 
-`check.py` 결과는 `ERROR`(반드시 고침), `WARN`(읽고 판단), `GAP`(빈칸, 사용자에게 알림) 세 가지다.
+`check.py` 결과는 `ERROR`(반드시 고침), `WARN`(읽고 판단), `GAP`(빈칸, 사용자에게 알림) 세 가지다. `pdf.py` 는 쪽 품질 경고가 있어도 성공으로 끝나고, `--strict` 를 주면 실패로 끝난다.
 
 ## 글쓰기 규칙 (요약)
 
@@ -116,7 +124,7 @@ uv run --with playwright python $S/capture.py shots.txt -o shots/      # QA 캡�
 | 결론 먼저 | 첫 절은 타일 2~4개 + 3줄. "판단, 가장 큰 문제, 다음 할 일" 순서 |
 | 절 하나에 메시지 하나 | 절 제목만 이어 읽어도 줄거리가 나오게. 같은 모양 항목 3개 이상은 표로 |
 | 말투 두 가지 | 목록·표는 개조식 명사형("수정 완료"), 이어지는 문장은 합쇼체("~습니다"). "~했다"는 쓰지 않음 |
-| 분량 | 결론 450자·5항목, 절 700자 권장(1,200자 넘으면 오류), 문서 6,000자, 문장 110자 |
+| 분량 | 결론 450자·5항목, 절 700자 권장(1,200자 넘으면 오류), 문서 산문 6,000자, 문장 110자, 표까지 합친 글자와 표 행은 종류별 상한 |
 | 수치에 기준 | 어느 서버·판, 언제, 무엇 대비 |
 | 쓰지 않는 표현 | "~를 통해", "다양한", "중요합니다", "최적화·고도화", 긴 대시, 이모지 |
 
@@ -128,8 +136,11 @@ uv run --with playwright python $S/capture.py shots.txt -o shots/      # QA 캡�
 |---|---|---|
 | QA: 결제 화면 개편 시험 | [md](examples/qa/checkout_qa_261005.md) | [HTML](examples/qa/checkout_qa_261005.html) · [PDF](examples/qa/checkout_qa_261005.pdf) |
 | 장애: 주문 확인 메일 지연 | [md](examples/incident/mail_delay_incident_261005.md) | [HTML](examples/incident/mail_delay_incident_261005.html) · [PDF](examples/incident/mail_delay_incident_261005.pdf) |
+| 분석(web 레이아웃): 9월 운영 분석 | [md](examples/monthly/ops_monthly_261005.md) | [HTML](examples/monthly/ops_monthly_261005.html) · [PDF](examples/monthly/ops_monthly_261005.pdf) |
 
 HTML 은 내려받아 브라우저로 열면 된다. QA 예시의 캡처는 `examples/qa/mock/` 의 가상 화면을 `capture.py` 로 찍은 것이다(`examples/qa/shots.txt`).
+
+바뀐 내용은 [`CHANGELOG.md`](CHANGELOG.md).
 
 ## 참고한 것
 

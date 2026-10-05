@@ -2,11 +2,20 @@
 
 ## 증거 규율
 
-- 결함마다 ID 하나. **관찰**(본 것 그대로), **기대**(근거 포함), **증거**(캡처·로그), **조치**를 나눠 쓴다.
+- 결함마다 ID 하나. **관찰**(본 것 그대로), **기대**(근거 포함), **증거**(캡처·로그·코드), **조치**를 나눠 쓴다.
 - 관찰과 추정을 섞지 않는다. 원인 추정은 "조치" 또는 별도 줄에 "추정"이라고 쓴다.
 - 결함 한 줄 요약은 결론 절·결과 표·결함 카드에서 같은 문장을 쓴다(표현을 바꾸면 다른 결함처럼 읽힌다).
 - 증거가 없는 주장은 지운다. 재현 못 한 것은 "재현 안 됨"으로 남긴다.
 - 시나리오 결과는 사용자가 하는 일 단위로 쓴다("문서 등록", "결정 되돌리기"). 내부 함수·API 이름이 아니다.
+
+## 코드 검수 (evidence: code)
+
+화면을 띄우지 않고 코드·PR 만 읽어 검수했으면 front matter 에 `evidence: code` 를 쓴다.
+
+- 캡처가 없어도 된다(없으면 원래는 ERROR).
+- 대신 결함마다 증거에 코드가 있어야 한다: 인라인 코드(`` `파일:줄` ``) 또는 펜스 코드 블록. 없으면 ERROR.
+- 증거 코드는 문제를 보여 주는 몇 줄만. 파일 전체를 붙이지 않는다.
+- 시험 범위 표의 "방법"에 "코드 검수(실행 안 함)"를, "제외"에 화면 시험을 적는다. 캡처를 지어내지 않는다.
 
 ## 캡처 규칙
 
@@ -24,4 +33,7 @@ uv run --with playwright python -m playwright install chromium   # 처음 한 �
 uv run --with playwright python <skill>/scripts/capture.py shots.txt -o shots/ [--storage state.json]
 ```
 
-`shots.txt` 한 줄 = 한 장: `파일이름 | URL | 선택자 | 가로폭`. 로그인이 필요하면 playwright 로 로그인한 뒤 `context.storage_state(path="state.json")` 로 세션을 저장해 `--storage` 로 넘긴다.
+`shots.txt` 한 줄 = 한 장: `파일이름 | URL | 선택자 | 가로폭 | 동작`. 동작(생략 가능)은 찍기 전에 차례로 한다: `click=#apply;wait=400`, `fill=#q=쿠폰;press=Enter`, 맨 뒤에 `js=<코드>`. 로그인이 필요하면 playwright 로 로그인한 뒤 `context.storage_state(path="state.json")` 로 세션을 저장해 `--storage` 로 넘긴다.
+
+- `--hide 선택자`(여러 번): 떠 있는 안내·개발 배지·채팅 버튼을 숨기고 찍는다.
+- `--unstick`: 고정 머리·바닥 띠(fixed·sticky)를 풀어 요소 캡처에 겹치지 않게 한다.

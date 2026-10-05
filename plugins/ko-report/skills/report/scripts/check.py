@@ -2,7 +2,7 @@
 
 사용: python3 check.py 원고.md [--external]
 결과: ERROR 가 하나라도 있으면 exit 1. WARN 은 볼 곳, GAP 은 [확인 필요] 자리.
-규칙 출처: references/writing.md. 기준값은 아래 LIMITS 한 곳에서 바꾼다.
+규칙 출처: references/writing.md. 기준값은 아래 LIMITS·TYPE_LIMITS 에서 바꾼다.
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import re
 import sys
 from pathlib import Path
 
+TYPES = ("progress", "completion", "qa", "proposal", "analysis", "incident", "policy", "spec")
 LIMITS = {
     "lead_chars": 450,        # 첫 절(결론) 산문 글자 수
     "lead_bullets": 5,        # 첫 절 목록 항목 수
@@ -20,8 +21,18 @@ LIMITS = {
     "sentence_chars": 110,    # 한 문장 길이. 넘으면 WARN
     "bold_per_section": 4,
 }
+# 종류별 분량 상한(WARN): 보이는 글자 전체(표·상자·카드 포함), 표 행 수. pdf.py 의 쪽 예산과 짝이다.
+TYPE_LIMITS = {
+    "progress": (4500, 45), "completion": (4500, 45), "incident": (4000, 40),
+    "proposal": (7000, 70), "analysis": (7000, 70), "qa": (9000, 90),
+    "policy": (16000, 170), "spec": (16000, 200),
+}
 
 # AI 티·군말 — im-not-ai 진단 상위 패턴 중 보고서에 자주 나오는 것만 추렸다(전수 윤문은 /humanize).
+# 이모지: 그림 문자 영역과 기본이 그림으로 보이는 기호만. ★ ○ △ ☆ ● ■ ✓ 같은 글자 기호는 잡지 않는다.
+EMOJI = ("[\U0001F000-\U0001FAFF⌚⌛⏩-⏳⏸-⏺☔☕♈-♓♿⚓"
+         "⚡⚪⚫⚽⚾⛄⛅⛎⛔⛪⛲-⛵⛺⛽✅✨"
+         "❌❎❓-❕❗➕-➗➰➿⬛⬜⭐⭕️]")
 AI_TELLS = [
     (r"를 통해|을 통해", "'~를 통해' → 수단을 동사로(로, 해서)"),
     (r"다양한", "'다양한' → 무엇이 몇 개인지"),
@@ -36,7 +47,7 @@ AI_TELLS = [
     (r"본질적으로|근본적으로", "추상어 → 삭제"),
     (r"최적화|고도화|극대화|혁신", "기획서 어휘 → 실제로 바뀐 것"),
     (r"—|――", "긴 대시 → 쉼표·괄호·문장 분리"),
-    (r"[\U0001F300-\U0001FAFF☀-➿]", "이모지 → 상태 딱지(표 칸 상태 단어)"),
+    (EMOJI, "이모지 → 상태 딱지(표 칸 상태 단어)"),
 ]
 EXTERNAL = [
     (r"/Users/|/home/|[A-Za-z]:\\\\", "로컬 경로"),
@@ -47,7 +58,9 @@ EXTERNAL = [
     (r"→|▶", "화살표"),
     (r"§", "절 기호"),
 ]
-PLACEHOLDER = r"\[확인 필요[^\]]*\]|\[DATA NEEDED[^\]]*\]|TODO|TBD"
+PLACEHOLDER = r"\[확인 필요[^\]]*\]|\[DATA NEEDED[^\]]*\]|\bTODO\b|\bTBD\b"
+SKELETON = r"<[가-힣][^<>\n]{0,80}>|\(없으면 지움\)"
+CARD_KEYS = ("관찰", "기대", "증거", "조치", "원인", "재현", "추정")
 
 
 def strip_front(text: str) -> tuple[dict, str]:
@@ -55,9 +68,9 @@ def strip_front(text: str) -> tuple[dict, str]:
     if text.startswith("---\n"):
         end = text.find("\n---", 4)
         for line in text[4:end].splitlines():
-            if ":" in line:
+            if ":" in line and not line.strip().startswith("#"):
                 k, v = line.split(":", 1)
-                meta[k.strip()] = v.strip()
+                meta[k.strip()] = re.sub(r"\s{2,}#\s.*$", "", v).strip()
         text = text[end + 4:]
     return meta, text
 
@@ -70,28 +83,92 @@ def prose_of(block: str) -> str:
     return "\n".join(lines)
 
 
+def visible_of(block: str) -> str:
+    """화면에 보이는 글자: 표·상자·카드·코드 안 글자까지. 문법 기호와 이미지 경로는 뺀다."""
+    out = []
+    for l in block.splitlines():
+        s = l.strip()
+        if re.fullmatch(r"\|?[\s:|-]+\|?", s) and "-" in s:      # 표 구분선
+            continue
+        if s.startswith("```"):
+            continue
+        s = re.sub(r"^:::\w+", "", s)                            # 블록 이름(인자 글자는 남김)
+        s = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", s)
+        s = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", s)
+        s = re.sub(r"^#+\s|^[-*]\s|^\d+\.\s", "", s)
+        s = re.sub(r"[|*`]", "", s)
+        out.append(s)
+    return "\n".join(out)
+
+
+def table_rows(block: str) -> int:
+    lines = [l.strip() for l in block.splitlines()]
+    seps = sum(1 for l in lines if l.startswith("|") and re.fullmatch(r"\|[\s:|-]+\|?", l))
+    return max(sum(1 for l in lines if l.startswith("|")) - 2 * seps, 0)
+
+
+def card_rows(body: str) -> dict[str, str]:
+    """결함 카드: 정해진 키로 시작하는 줄만 칸, 나머지 줄과 펜스 코드는 앞 칸에 붙는다."""
+    rows: dict[str, str] = {}
+    key, fence = None, None
+    for line in body.splitlines():
+        if fence:
+            if key:
+                rows[key] += "\n" + line
+            if line.strip().startswith(fence):
+                fence = None
+            continue
+        fm = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if fm:
+            fence = fm.group(1)
+            if key:
+                rows[key] += "\n" + line
+            continue
+        m = re.match(r"^\s*(" + "|".join(CARD_KEYS) + r")\s*[:：]\s?(.*)$", line)
+        if m:
+            key = m.group(1)
+            rows[key] = m.group(2)
+        elif key:
+            rows[key] += "\n" + line
+    return rows
+
+
+def sec_title(s: str) -> str:
+    return s.splitlines()[0].split(" | ")[0].strip()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("src")
     ap.add_argument("--external", action="store_true", help="대외 규칙까지 검사(front matter audience: external 이면 자동)")
     a = ap.parse_args()
-    meta, text = strip_front(Path(a.src).read_text(encoding="utf-8"))
+    raw = Path(a.src).read_text(encoding="utf-8")
+    meta, text = strip_front(raw)
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)   # 틀의 안내 주석은 화면에 안 보인다
+    rtype = meta.get("type", "")
     external = a.external or meta.get("audience") == "external"
     errs, warns, gaps = [], [], []
 
     for k in ("title", "type", "date"):
         if not meta.get(k):
             errs.append(f"front matter '{k}' 없음")
-    if meta.get("type") not in (None, "", "progress", "completion", "qa", "proposal", "analysis", "incident", "general"):
-        errs.append(f"type '{meta.get('type')}' 은 정해진 종류가 아님")
+    if rtype and rtype not in TYPES:
+        errs.append(f"type '{rtype}' 은 정해진 종류가 아님({' · '.join(TYPES)})")
+    if meta.get("layout", "doc") not in ("doc", "web"):
+        errs.append(f"layout '{meta.get('layout')}' 은 doc 또는 web")
+    if meta.get("evidence") and (rtype != "qa" or meta["evidence"] != "code"):
+        errs.append("evidence 는 QA 보고에서 'evidence: code' 로만 쓴다")
     if not meta.get("basis"):
         warns.append("basis(기준: 어느 서버·판·시점) 없음 — 수치가 있으면 반드시 적는다")
+
+    for m in re.finditer(SKELETON, re.sub(r"^```.*?^```", "", text, flags=re.S | re.M)):
+        errs.append(f"틀 자리표시자가 남음: {m.group(0)[:40]}")
 
     sections = re.split(r"(?m)^## ", text)[1:]
     if not sections:
         errs.append("## 절이 없음")
     else:
-        first_title = sections[0].splitlines()[0]
+        first_title = sec_title(sections[0])
         if not re.search(r"결론|요약|한 줄|결과", first_title):
             warns.append(f"첫 절 '{first_title}' — 결론을 맨 앞에 둔다(결론·요약)")
         lead = prose_of(sections[0].split("\n", 1)[1] if "\n" in sections[0] else "")
@@ -104,7 +181,7 @@ def main() -> int:
 
     total = 0
     for s in sections:
-        title = s.splitlines()[0].strip()
+        title = sec_title(s)
         body = s.split("\n", 1)[1] if "\n" in s else ""
         pr = prose_of(body)
         c = len(re.sub(r"\s", "", pr))
@@ -123,16 +200,23 @@ def main() -> int:
     if total > LIMITS["total_chars"]:
         warns.append(f"문서 산문 {total}자 > {LIMITS['total_chars']}자 — 분량을 줄이거나 부록으로")
 
+    visible = len(re.sub(r"\s", "", visible_of(text)))
+    rows = table_rows(text)
+    vmax, rmax = TYPE_LIMITS.get(rtype, (7000, 70))
+    if visible > vmax:
+        warns.append(f"보이는 글자 {visible:,}자 > {vmax:,}자({rtype or '기본'}) — 표·상자까지 합친 분량. 부록으로 빼거나 나눈다")
+    if rows > rmax:
+        warns.append(f"표 {rows}행 > {rmax}행({rtype or '기본'}) — 본문에는 요지만, 전체 목록은 부록으로")
+
     blocks = "\n".join(m.group(1) for m in re.finditer(r"^:::\w+[^\n]*\n(.*?)^:::", text, flags=re.S | re.M))
     body_all = prose_of(text) + "\n" + blocks + "\n" + "\n".join(l for l in text.splitlines() if l.lstrip().startswith("|"))
     for pat, why in AI_TELLS:
         for m in re.finditer(pat, body_all, flags=re.M):
-            line = body_all[: m.start()].count("\n") + 1
             ctx = body_all[max(0, m.start() - 15): m.end() + 15].replace("\n", " ")
             warns.append(f"AI 티 ({why}): …{ctx}…")
     # 평서형 "~했다·~한다·~였다" — 보고서는 명사형 또는 합쇼체(references/writing.md 3)
     plain = []
-    for line in body_all.splitlines():
+    for line in re.sub(r"^```.*?^```", "", body_all, flags=re.S | re.M).splitlines():
         for cell in re.split(r"\|", line):
             for sent in re.split(r"(?<=[.!?])\s+", cell.strip()):
                 sent = re.sub(r"^[-*]\s+|^\s*[^:：]{1,8}[:：]\s*", "", sent).strip()
@@ -141,21 +225,32 @@ def main() -> int:
     if plain:
         warns.append(f"평서형 '~다' {len(plain)}곳 — 명사형(완료·필요) 또는 '~습니다'로: " + " / ".join(p[-24:] for p in plain[:4]))
     if external:
-        full = text
         for pat, why in EXTERNAL:
-            for m in re.finditer(pat, full):
+            for m in re.finditer(pat, text):
                 errs.append(f"대외 금지 — {why}: {m.group(0)}")
-    for m in re.finditer(PLACEHOLDER, text):
+    for m in re.finditer(PLACEHOLDER, raw):     # front matter·표 칸 포함 전체
         gaps.append(m.group(0))
 
-    if meta.get("type") == "qa":
-        if not re.search(r"!\[[^\]]*\]\([^)]+\)", text):
-            errs.append("QA 보고에 캡처가 하나도 없음")
-        for d in re.finditer(r"^:::defect[ \t]*(.*?)\n(.*?)^:::", text, flags=re.S | re.M):
-            body = d.group(2)
+    if rtype == "qa":
+        code_ev = meta.get("evidence") == "code"
+        if not code_ev and not re.search(r"!\[[^\]]*\]\([^)]+\)", text):
+            errs.append("QA 보고에 캡처가 하나도 없음 — 코드 검수라면 front matter 에 'evidence: code'")
+        for d in re.finditer(r"^:::defect[ \t]*(.*?)\n(.*?)^:::[ \t]*$", text, flags=re.S | re.M):
+            did = d.group(1).split("|")[0].strip()
+            rows_ = card_rows(d.group(2))
             for need in ("관찰", "기대", "증거"):
-                if not re.search(rf"^\s*{need}\s*[:：]", body, flags=re.M):
-                    errs.append(f"결함 '{d.group(1).strip()}' 에 '{need}' 없음")
+                if not rows_.get(need, "").strip():
+                    errs.append(f"결함 '{did}' 에 '{need}' 없음")
+            ev = rows_.get("증거", "")
+            if ev.strip() and not re.search(r"!\[|`", ev):
+                (errs if code_ev else warns).append(
+                    f"결함 '{did}' 증거에 캡처·코드가 없음 — 캡처 ![..](..) 또는 코드 `..`·```블록```")
+    if rtype == "spec":
+        for s in re.finditer(r"^:::screen[ \t]*(.*?)\n(.*?)^:::[ \t]*$", text, flags=re.S | re.M):
+            if not re.search(r"!\[", s.group(2)):
+                warns.append(f"화면 '{s.group(1).strip()}' 에 그림 없음 — 없으면 이유를 '비고:' 에")
+        if not re.search(r"!\[", text):
+            warns.append("화면 설계 문서에 그림이 하나도 없음")
 
     for e in errs:
         print("ERROR", e)
@@ -164,7 +259,8 @@ def main() -> int:
     for g in gaps:
         print("GAP  ", g)
     verdict = "READY" if not errs else "FAIL"
-    print(f"{verdict} — 오류 {len(errs)} · 경고 {len(warns)} · 빈칸 {len(gaps)} · 산문 {total}자 · 절 {len(sections)}개")
+    print(f"{verdict} — 오류 {len(errs)} · 경고 {len(warns)} · 빈칸 {len(gaps)} · "
+          f"산문 {total:,}자 · 보이는 글자 {visible:,}자 · 표 {rows}행 · 절 {len(sections)}개")
     return 1 if errs else 0
 
 

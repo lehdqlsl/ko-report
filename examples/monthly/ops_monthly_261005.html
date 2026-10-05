@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="generator" content="ko-report">
-<meta name="ko-report-type" content="incident">
-<title>10/2 솔방울마켓 주문 확인 메일 지연 장애 보고</title>
+<meta name="ko-report-type" content="analysis">
+<title>솔방울마켓 9월 운영 분석, 주문은 늘었는데 왜 재구매가 줄었나</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -215,12 +215,12 @@ circle.seg.c1 { stroke: var(--c1); } circle.seg.c2 { stroke: var(--c2); } circle
 .bar.ok .fill { background: var(--ok); } .bar.warn .fill { background: var(--warn); } .bar.bad .fill { background: var(--bad); }
 .bar .v { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; text-align: right; }
 
-/* 부록 접기(web) — 닫힌 상태에서도 인쇄는 펼친다(report.js·pdf.py) */
-section.appendix details { display: grid; gap: 14px; }
-section.appendix summary { list-style: none; cursor: pointer; }
-section.appendix summary::-webkit-details-marker { display: none; }
-section.appendix summary h2::after { content: "펼치기"; margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; align-self: center; }
-section.appendix details[open] summary h2::after { content: "접기"; }
+/* 부록 접기(web) — 제목은 늘 보이고 내용만 접힌다. 인쇄는 펼친다(report.js·pdf.py) */
+section.appendix details > summary { list-style: none; cursor: pointer; width: max-content; font-size: 13px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; }
+section.appendix details > summary::-webkit-details-marker { display: none; }
+section.appendix details > summary::before { content: "펼치기"; }
+section.appendix details[open] > summary::before { content: "접기"; }
+section.appendix details > summary:hover { color: var(--ink); }
 section.appendix details[open] > summary { margin-bottom: 14px; }
 section.appendix details > :not(summary) + * { margin-top: 14px; }
 nav.side { display: none; }
@@ -387,8 +387,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   section.appendix details > * + * { margin-top: 6pt; }
   mark.gap { padding: 0 2pt; }
   nav.side { display: none !important; }
-  section.appendix summary h2::after { content: none !important; }
-  details > summary { list-style: none; }
+  section.appendix details > summary { display: none; }
 
   figure, .tiles, .tile, .defect, tr, .callout, .bar, .bars, .chart, .steps, .screen dl, .screen .head { break-inside: avoid; }
   h2, h3, .screen .head, .defect .head, .steps .cap, .bars .cap, .chart .cap { break-after: avoid; }
@@ -401,135 +400,181 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
 
 </style>
 </head>
-<body class="layout-doc type-incident">
+<body class="layout-web type-analysis">
 <div class="wrap">
-  
+  <nav class="side" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 주문 추이</a></li><li><a href="#s3">3 재구매와 배송</a></li><li><a href="#s4">4 지연 원인</a></li><li><a href="#s5">5 권고</a></li><li><a href="#s6">6 정할 것</a></li><li><a href="#s7">7 부록 집계 기준</a></li></ol></nav>
   <main>
     <header class="doc">
-      <p class="eyebrow">장애 보고 <span class="badge internal">내부용</span></p>
-      <h1>10/2 솔방울마켓 주문 확인 메일 지연 장애 보고</h1>
-      <p class="meta">2026-10-05 · 플랫폼팀 · 메일 발송 로그와 모니터링 화면 · 시각은 한국 시간</p>
-      <nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 경과</a></li><li><a href="#s3">3 대기열은 19:40에 가장 길었음</a></li><li><a href="#s4">4 원인</a></li><li><a href="#s5">5 조치와 재발 방지</a></li></ol></nav>
+      <p class="eyebrow">분석 보고 <span class="badge internal">내부용</span></p>
+      <h1>솔방울마켓 9월 운영 분석, 주문은 늘었는데 왜 재구매가 줄었나</h1>
+      <p class="meta">2026-10-05 · 커머스팀 데이터 · 주문·회원 DB 9/1~9/30 집계 · 10/4 조회 · 가상 예시 자료</p>
+      <nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 주문 추이</a></li><li><a href="#s3">3 재구매와 배송</a></li><li><a href="#s4">4 지연 원인</a></li><li><a href="#s5">5 권고</a></li><li><a href="#s6">6 정할 것</a></li><li><a href="#s7">7 부록 집계 기준</a></li></ol></nav>
       
     </header>
 <section class="sec lead" id="s1">
 <h2><span class="no">1</span>결론</h2>
 
-<div class="tiles n3"><div class="tile bad"><b>47분</b><span>영향 시간(19:12~19:59)</span></div><div class="tile warn"><b>1,284건</b><span>늦게 나간 주문 확인 메일</span></div><div class="tile ok"><b>해결</b><span>현재 상태</span></div></div>
+<div class="tiles n4 long"><div class="tile ok"><b>41,820건</b><span>9월 주문(8월 대비 +18%)</span></div><div class="tile bad"><b>23.4%</b><span>30일 재구매율(8월 27.9%)</span></div><div class="tile warn"><b>2.1일</b><span>평균 배송 소요(8월 1.6일)</span></div><div class="tile info"><b>3건</b><span>정할 것(10/10까지)</span></div></div>
 <ul>
-<li>10/2(금) 19:12부터 47분간 주문 확인 메일이 최대 38분 늦게 발송, 주문과 결제는 정상</li>
-<li>원인은 저녁 할인 행사 주문 급증으로 메일 대기열이 발송 한도(분당 600건)를 넘은 것</li>
-<li>대기열 길이 경보를 10/8까지 추가하고, 발송 한도는 행사 전 미리 올리는 절차로 변경</li>
+<li>주문 증가는 추석 기획전 신규 고객 덕분이고, 재구매율 하락은 배송 지연을 겪은 고객에 몰려 있음</li>
+<li>배송 2일 넘게 걸린 고객의 재구매율은 14.8%로, 2일 이내 고객(29.1%)의 절반</li>
+<li>10월 기획전 전에 출고 마감 시각 조정과 지연 안내 문자 도입을 정해야 함</li>
 </ul>
 
 </section>
 <section class="sec" id="s2">
-<h2><span class="no">2</span>경과</h2>
+<h2><span class="no">2</span>주문은 추석 기획전 주간에 몰렸음</h2>
 
-<div class="tbl keycol"><table>
-<thead>
-<tr>
-<th>시각</th>
-<th>일</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>19:00</td>
-<td>저녁 할인 행사 시작, 주문 평소의 4배</td>
-</tr>
-<tr>
-<td>19:12</td>
-<td>메일 대기열이 쌓이기 시작</td>
-</tr>
-<tr>
-<td>19:31</td>
-<td>고객센터 문의 3건으로 감지</td>
-</tr>
-<tr>
-<td>19:38</td>
-<td>발송 서버 연결 수 상한을 20에서 60으로 올림</td>
-</tr>
-<tr>
-<td>19:59</td>
-<td>대기열 비움, 정상 발송 확인</td>
-</tr>
-</tbody>
-</table></div>
+<div class="group charts"><div class="chart k-line"><div class="cap">주별 주문 건수(건, 9월)</div><div class="plot"><svg viewBox="0 0 440 230" role="img" aria-label="주별 주문 건수(건, 9월)"><line class="grid" x1="57" x2="428" y1="190.0" y2="190.0"/><text class="tick" x="49" y="194.0" text-anchor="end">0</text><line class="grid" x1="57" x2="428" y1="134.0" y2="134.0"/><text class="tick" x="49" y="138.0" text-anchor="end">5,000</text><line class="grid" x1="57" x2="428" y1="78.0" y2="78.0"/><text class="tick" x="49" y="82.0" text-anchor="end">10,000</text><line class="grid" x1="57" x2="428" y1="22.0" y2="22.0"/><text class="tick" x="49" y="26.0" text-anchor="end">15,000</text><path class="area" d="M94.1,99.1 L168.3,89.9 L242.5,41.5 L316.7,107.0 L390.9,144.2 L390.9,190.0 L94.1,190.0 Z"/><path class="line" d="M94.1,99.1 L168.3,89.9 L242.5,41.5 L316.7,107.0 L390.9,144.2"/><text class="xl" x="94.1" y="208" text-anchor="middle"><tspan x="94.1" dy="0">9/1주</tspan></text><text class="xl" x="168.3" y="208" text-anchor="middle"><tspan x="168.3" dy="0">9/8주</tspan></text><text class="xl" x="242.5" y="208" text-anchor="middle"><tspan x="242.5" dy="0">9/15주</tspan></text><text class="xl" x="316.7" y="208" text-anchor="middle"><tspan x="316.7" dy="0">9/22주</tspan></text><text class="xl" x="390.9" y="208" text-anchor="middle"><tspan x="390.9" dy="0">9/29주</tspan></text><circle class="dot " cx="94.1" cy="99.1" r="4.5"><title>9/1주: 8,120</title></circle><circle class="dot " cx="168.3" cy="89.9" r="4.5"><title>9/8주: 8,940</title></circle><circle class="dot ok" cx="242.5" cy="41.5" r="4.5"><title>9/15주: 13,260</title></circle><text class="val" x="242.5" y="31.5" text-anchor="middle">13,260</text><circle class="dot " cx="316.7" cy="107.0" r="4.5"><title>9/22주: 7,410</title></circle><circle class="dot " cx="390.9" cy="144.2" r="4.5"><title>9/29주: 4,090</title></circle><text class="val" x="390.9" y="134.2" text-anchor="middle">4,090</text></svg></div></div><div class="chart k-donut"><div class="cap">9월 주문 고객 구성(건)</div><div class="plot"><svg viewBox="0 0 180 180" role="img" aria-label="9월 주문 고객 구성(건)"><path class="seg c1" d="M90.00,10.00 A80,80 0 1 1 25.30,137.05 L47.94,120.58 A52,52 0 1 0 90.00,38.00 Z"><title>기존 고객: 27,180</title></path><path class="seg c2" d="M25.30,137.05 A80,80 0 0 1 52.26,19.46 L65.47,44.15 A52,52 0 0 0 47.94,120.58 Z"><title>기획전 신규: 11,370</title></path><path class="seg c3" d="M52.26,19.46 A80,80 0 0 1 90.00,10.00 L90.00,38.00 A52,52 0 0 0 65.47,44.15 Z"><title>그 밖의 신규: 3,270</title></path><text class="ctr" x="90" y="96" text-anchor="middle">41,820</text></svg><ul class="legend"><li><i class="sw c1"></i><span>기존 고객</span><b>27,180</b><em>65%</em></li><li><i class="sw c2"></i><span>기획전 신규</span><b>11,370</b><em>27%</em></li><li><i class="sw c3"></i><span>그 밖의 신규</span><b>3,270</b><em>8%</em></li></ul></div></div></div>
+<ul>
+<li>9/15주 주문이 평소의 1.5배. 신규 고객 주문 14,640건 중 78%가 기획전 상품</li>
+<li>9/29주는 30일까지만 집계(이틀)</li>
+</ul>
 
 </section>
 <section class="sec" id="s3">
-<h2><span class="no">3</span>대기열은 19:40에 가장 길었음</h2>
+<h2><span class="no">3</span>재구매 하락은 배송 2일 초과 고객에 몰림</h2>
 
-<div class="bars" style="--vw:3.3em"><div class="cap">메일 대기열에 쌓인 건수(10분 단위, 10/2)</div><div class="bar info"><span>19:10</span><div class="track"><div class="fill" style="width:9.3%"></div></div><span class="v">120</span></div><div class="bar warn"><span>19:20</span><div class="track"><div class="fill" style="width:49.8%"></div></div><span class="v">640</span></div><div class="bar bad"><span>19:30</span><div class="track"><div class="fill" style="width:81.8%"></div></div><span class="v">1,050</span></div><div class="bar bad"><span>19:40</span><div class="track"><div class="fill" style="width:100.0%"></div></div><span class="v">1,284</span></div><div class="bar warn"><span>19:50</span><div class="track"><div class="fill" style="width:31.9%"></div></div><span class="v">410</span></div><div class="bar ok"><span>20:00</span><div class="track"><div class="fill" style="width:1.0%"></div></div><span class="v">0</span></div></div>
+<div class="bars" style="--vw:2.7em"><div class="cap">30일 재구매율(%, 9월 첫 주문 고객, 배송 소요별)</div><div class="bar ok"><span>1일 이내</span><div class="track"><div class="fill" style="width:100.0%"></div></div><span class="v">31.2</span></div><div class="bar ok"><span>1~2일</span><div class="track"><div class="fill" style="width:86.5%"></div></div><span class="v">27.0</span></div><div class="bar warn"><span>2~3일</span><div class="track"><div class="fill" style="width:54.2%"></div></div><span class="v">16.9</span></div><div class="bar bad"><span>3일 초과</span><div class="track"><div class="fill" style="width:37.8%"></div></div><span class="v">11.8</span></div></div>
+<div class="tbl keycol"><table>
+<thead>
+<tr>
+<th>배송 소요</th>
+<th class="num">고객 수</th>
+<th class="num">재구매율</th>
+<th class="num">문의 건수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1일 이내</td>
+<td class="num">9,840</td>
+<td class="num">31.2%</td>
+<td class="num">120</td>
+</tr>
+<tr>
+<td>1~2일</td>
+<td class="num">11,260</td>
+<td class="num">27.0%</td>
+<td class="num">210</td>
+</tr>
+<tr>
+<td>2~3일</td>
+<td class="num">5,930</td>
+<td class="num">16.9%</td>
+<td class="num">640</td>
+</tr>
+<tr>
+<td>3일 초과</td>
+<td class="num">2,410</td>
+<td class="num">11.8%</td>
+<td class="num">980</td>
+</tr>
+</tbody>
+</table></div>
+<div class="group callouts"><div class="callout warn"><p>3일 넘게 걸린 2,410명의 문의 980건 중 71%가 "언제 오나요"였습니다. 지연 자체보다 안내가 없던 것이 불만의 중심입니다.</p></div><div class="callout info"><p>기획전 신규 고객만 떼어 봐도 같은 경향입니다(2일 이내 26.4%, 2일 초과 13.1%). 신규 고객이라 재구매가 낮은 것만은 아닙니다.</p></div></div>
 
 </section>
 <section class="sec" id="s4">
-<h2><span class="no">4</span>원인</h2>
+<h2><span class="no">4</span>지연은 오후 주문의 출고 마감에서 생김</h2>
+
+<div class="chart k-bar"><div class="cap">주문 시각별 평균 배송 소요(일, 9/15주)</div><div class="plot"><svg viewBox="0 0 640 250" role="img" aria-label="주문 시각별 평균 배송 소요(일, 9/15주)"><line class="grid" x1="21" x2="628" y1="210.0" y2="210.0"/><text class="tick" x="13" y="214.0" text-anchor="end">0</text><line class="grid" x1="21" x2="628" y1="163.0" y2="163.0"/><text class="tick" x="13" y="167.0" text-anchor="end">1</text><line class="grid" x1="21" x2="628" y1="116.0" y2="116.0"/><text class="tick" x="13" y="120.0" text-anchor="end">2</text><line class="grid" x1="21" x2="628" y1="69.0" y2="69.0"/><text class="tick" x="13" y="73.0" text-anchor="end">3</text><line class="grid" x1="21" x2="628" y1="22.0" y2="22.0"/><text class="tick" x="13" y="26.0" text-anchor="end">4</text><text class="xl" x="81.7" y="228" text-anchor="middle"><tspan x="81.7" dy="0">0~9시</tspan></text><text class="xl" x="203.1" y="228" text-anchor="middle"><tspan x="203.1" dy="0">9~12시</tspan></text><text class="xl" x="324.5" y="228" text-anchor="middle"><tspan x="324.5" dy="0">12~15시</tspan></text><text class="xl" x="445.9" y="228" text-anchor="middle"><tspan x="445.9" dy="0">15~18시</tspan></text><text class="xl" x="567.3" y="228" text-anchor="middle"><tspan x="567.3" dy="0">18~24시</tspan></text><path class="col " d="M67.7,210.0 V148.2 Q67.7,144.2 71.7,144.2 H91.7 Q95.7,144.2 95.7,148.2 V210.0 Z"><title>0~9시: 1.4</title></path><text class="val" x="81.7" y="137.2" text-anchor="middle">1.4</text><path class="col " d="M189.1,210.0 V143.5 Q189.1,139.5 193.1,139.5 H213.1 Q217.1,139.5 217.1,143.5 V210.0 Z"><title>9~12시: 1.5</title></path><text class="val" x="203.1" y="132.5" text-anchor="middle">1.5</text><path class="col warn" d="M310.5,210.0 V91.8 Q310.5,87.8 314.5,87.8 H334.5 Q338.5,87.8 338.5,91.8 V210.0 Z"><title>12~15시: 2.6</title></path><text class="val" x="324.5" y="80.8" text-anchor="middle">2.6</text><path class="col bad" d="M431.9,210.0 V68.3 Q431.9,64.3 435.9,64.3 H455.9 Q459.9,64.3 459.9,68.3 V210.0 Z"><title>15~18시: 3.1</title></path><text class="val" x="445.9" y="57.3" text-anchor="middle">3.1</text><path class="col " d="M553.3,210.0 V124.7 Q553.3,120.7 557.3,120.7 H577.3 Q581.3,120.7 581.3,124.7 V210.0 Z"><title>18~24시: 1.9</title></path><text class="val" x="567.3" y="113.7" text-anchor="middle">1.9</text><line class="axis" x1="21" x2="628" y1="210.0" y2="210.0"/></svg></div></div>
+<div class="steps h"><div class="cap">오후 주문이 하루 늦어지는 과정</div><ol style="--n:4"><li><span class="n">1</span><div><b>오후 주문</b><p>기획전 알림이 13시에 나가 주문이 몰림</p></div></li><li><span class="n">2</span><div><b>출고 마감</b><p>물류 마감 15시에 걸려 다음 날로</p></div></li><li><span class="n">3</span><div><b>다음 날 출고</b><p>전날 물량에 밀려 오후 출고</p></div></li><li><span class="n">4</span><div><b>도착</b><p>주문 뒤 3일째 도착</p></div></li></ol></div>
+
+</section>
+<section class="sec" id="s5">
+<h2><span class="no">5</span>마감 조정과 지연 안내부터 하면 재구매 2%p 회복 추정</h2>
 
 <div class="tbl keycol"><table>
 <thead>
 <tr>
-<th>단계</th>
-<th>내용</th>
+<th>권고</th>
+<th>기대 효과</th>
+<th>비용·위험</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>직접 원인</td>
-<td>메일 발송 서버의 동시 연결 수가 기본값 20이라 분당 600건 넘게 보내지 못함</td>
+<td>기획전 알림을 10시로 앞당김</td>
+<td>15시 마감 전 주문 비중 62%에서 80%(추정)</td>
+<td>알림 열람률 변화 미확인</td>
 </tr>
 <tr>
-<td>왜</td>
-<td>행사 주문량을 메일 발송 쪽에 미리 알리는 절차가 없음</td>
+<td>출고 마감을 기획전 주간만 17시로</td>
+<td>2일 초과 고객 절반 감소(추정)</td>
+<td>물류 인력 하루 2시간 추가</td>
 </tr>
 <tr>
-<td>왜 못 막았나</td>
-<td>감시 항목이 발송 오류율뿐이고 대기열 길이는 보지 않음</td>
+<td>2일 넘으면 지연 안내 문자</td>
+<td>문의 30% 감소(8월 시험 결과)</td>
+<td>문자 비용 월 약 12만 원</td>
 </tr>
 </tbody>
 </table></div>
 
 </section>
-<section class="sec" id="s5">
-<h2><span class="no">5</span>조치와 재발 방지</h2>
+<section class="sec" id="s6">
+<h2><span class="no">6</span>정할 것</h2>
 
-<div class="tbl"><table>
+<div class="tbl keycol"><table>
 <thead>
 <tr>
-<th>조치</th>
-<th>담당</th>
+<th>정할 것</th>
+<th>권장</th>
 <th>기한</th>
-<th>상태</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>연결 수 상한 60으로 상향(임시)</td>
-<td>플랫폼팀</td>
-<td>10/2</td>
-<td><span class="pill ok">완료</span></td>
-</tr>
-<tr>
-<td>대기열 500건 넘으면 경보</td>
-<td>플랫폼팀</td>
+<td>10월 기획전 알림 시각</td>
+<td>10시</td>
 <td>10/8</td>
-<td><span class="pill warn">진행</span></td>
 </tr>
 <tr>
-<td>행사 일정표에 메일 발송 한도 점검 항목 추가</td>
-<td>마케팅팀</td>
-<td>10/12</td>
-<td><span class="pill warn">예정</span></td>
+<td>기획전 주간 출고 마감 연장</td>
+<td>17시, 물류팀 합의 필요</td>
+<td>10/10</td>
 </tr>
 <tr>
-<td>메일이 늦은 주문 1,284건에 안내 문자 발송</td>
-<td>고객센터</td>
-<td>10/3</td>
-<td><span class="pill ok">완료</span></td>
+<td>지연 안내 문자 도입</td>
+<td>10월 기획전부터</td>
+<td>10/10</td>
 </tr>
 </tbody>
 </table></div>
+
+</section>
+<section class="sec appendix" id="s7">
+<h2><span class="no">7</span>부록 집계 기준</h2>
+<details><summary aria-label="부록 펼치기"></summary>
+
+<div class="tbl keycol"><table>
+<thead>
+<tr>
+<th>항목</th>
+<th>기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>재구매율</td>
+<td>9월 첫 주문 고객 중 첫 주문 뒤 30일 안에 다시 주문한 비율. 9/5 이후 첫 주문은 10/4까지만 봄</td>
+</tr>
+<tr>
+<td>배송 소요</td>
+<td>주문 시각에서 배송 완료 시각까지(주말 포함)</td>
+</tr>
+<tr>
+<td>문의</td>
+<td>고객센터 상담 중 배송 분류</td>
+</tr>
+<tr>
+<td>자료</td>
+<td>가상 예시 자료. 실제 회사·고객과 무관</td>
+</tr>
+</tbody>
+</table></div>
+</details>
 </section>
     
   </main>
