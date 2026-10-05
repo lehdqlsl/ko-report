@@ -140,7 +140,8 @@ mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; pad
 .defect .ttl { font-weight: 600; }
 .defect dl { margin: 0; display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 6px 14px; font-size: 14.5px; }
 .defect dt { color: var(--muted); font-weight: 600; }
-.defect dd, .screen dd { margin: 0; min-width: 0; display: grid; gap: 8px; }
+.defect dd, .screen dd { margin: 0; min-width: 0; }
+.defect dd > :is(figure, pre, p, ul, ol):not(:first-child), .screen dd > :is(figure, pre, p, ul, ol):not(:first-child) { margin-top: 8px; }   /* grid 를 쓰면 인라인 코드·글자가 따로 쌓인다 */
 .defect dd pre, .screen dd pre { font-size: 12.5px; }
 .defect figure { max-width: 640px; }
 .defect figure img { max-height: 380px; }
@@ -215,12 +216,12 @@ circle.seg.c1 { stroke: var(--c1); } circle.seg.c2 { stroke: var(--c2); } circle
 .bar.ok .fill { background: var(--ok); } .bar.warn .fill { background: var(--warn); } .bar.bad .fill { background: var(--bad); }
 .bar .v { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; text-align: right; }
 
-/* 부록 접기(web) — 닫힌 상태에서도 인쇄는 펼친다(report.js·pdf.py) */
-section.appendix details { display: grid; gap: 14px; }
-section.appendix summary { list-style: none; cursor: pointer; }
-section.appendix summary::-webkit-details-marker { display: none; }
-section.appendix summary h2::after { content: "펼치기"; margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; align-self: center; }
-section.appendix details[open] summary h2::after { content: "접기"; }
+/* 부록 접기(web) — 제목은 늘 보이고 내용만 접힌다. 인쇄는 펼친다(report.js·pdf.py) */
+section.appendix details > summary { list-style: none; cursor: pointer; width: max-content; font-size: 13px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; }
+section.appendix details > summary::-webkit-details-marker { display: none; }
+section.appendix details > summary::before { content: "펼치기"; }
+section.appendix details[open] > summary::before { content: "접기"; }
+section.appendix details > summary:hover { color: var(--ink); }
 section.appendix details[open] > summary { margin-bottom: 14px; }
 section.appendix details > :not(summary) + * { margin-top: 14px; }
 nav.side { display: none; }
@@ -372,7 +373,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   .screen .ttl { font-size: 10.5pt; }
   .screen dl { font-size: 8.8pt; gap: 3pt 10pt; }
   .screen .id { font-size: 8pt; }
-  .screen figure img { max-height: 90mm; }
+  .screen figure img, .type-spec figure img { max-height: 90mm; }
   /* 스토리보드 장면은 그림 왼쪽·설명 오른쪽으로 놓아 한 쪽에 두세 장면이 들어가게 한다 */
   .screen.scene { break-inside: avoid; }
   .screen.scene .body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 9pt; align-items: start; break-inside: avoid; }
@@ -387,8 +388,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   section.appendix details > * + * { margin-top: 6pt; }
   mark.gap { padding: 0 2pt; }
   nav.side { display: none !important; }
-  section.appendix summary h2::after { content: none !important; }
-  details > summary { list-style: none; }
+  section.appendix details > summary { display: none; }
 
   figure, .tiles, .tile, .defect, tr, .callout, .bar, .bars, .chart, .steps, .screen dl, .screen .head { break-inside: avoid; }
   h2, h3, .screen .head, .defect .head, .steps .cap, .bars .cap, .chart .cap { break-after: avoid; }

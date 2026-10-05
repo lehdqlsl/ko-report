@@ -128,7 +128,8 @@ mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; pad
 .defect .ttl { font-weight: 600; }
 .defect dl { margin: 0; display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 6px 14px; font-size: 14.5px; }
 .defect dt { color: var(--muted); font-weight: 600; }
-.defect dd, .screen dd { margin: 0; min-width: 0; display: grid; gap: 8px; }
+.defect dd, .screen dd { margin: 0; min-width: 0; }
+.defect dd > :is(figure, pre, p, ul, ol):not(:first-child), .screen dd > :is(figure, pre, p, ul, ol):not(:first-child) { margin-top: 8px; }   /* grid 를 쓰면 인라인 코드·글자가 따로 쌓인다 */
 .defect dd pre, .screen dd pre { font-size: 12.5px; }
 .defect figure { max-width: 640px; }
 .defect figure img { max-height: 380px; }
