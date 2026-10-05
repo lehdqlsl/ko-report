@@ -1,0 +1,14 @@
+{
+  "name": "ko-report",
+  "description": "한국어 업무 보고서를 고정 디자인의 단일 HTML 로 만드는 스킬",
+  "owner": { "name": "lehdqlsl" },
+  "plugins": [
+    {
+      "name": "ko-report",
+      "version": "0.1.0",
+      "description": "진행·완료·QA·제안·분석·장애 보고서를 짧고 일관된 HTML 로. 분량·AI 티·대외 금칙 검사 포함.",
+      "category": "documents",
+      "source": "./plugins/ko-report"
+    }
+  ]
+}

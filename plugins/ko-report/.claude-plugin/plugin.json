@@ -1,0 +1,8 @@
+{
+  "name": "ko-report",
+  "version": "0.1.0",
+  "description": "한국어 업무 보고서(진행·완료·QA·제안·분석·장애)를 고정 디자인의 단일 HTML 로 만든다.",
+  "author": { "name": "lehdqlsl" },
+  "license": "MIT",
+  "skills": "./skills/"
+}
