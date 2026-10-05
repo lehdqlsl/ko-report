@@ -30,7 +30,7 @@
 
 - 어느 종류든 첫 절은 결론이다. 숫자 타일 2~4개와 3줄 요약으로 시작한다.
 - `check.py` 가 분량(산문과 표까지 합친 글자), 결론 우선, AI 티 표현, 평서형 말투를 세고 대외용이면 경로·커밋·IP·화살표까지 막는다. `READY` 가 나와야 끝난다.
-- 빌드한 뒤 `preview.py` 가 1280px·390px 화면을 찍어 가로 넘침과 글자가 세로로 쌓인 표 칸을 찾고, `pdf.py` 가 쪽마다 얼마나 찼는지 재서 큰 빈자리와 거의 빈 마지막 쪽을 알린다.
+- 빌드한 뒤 `preview.py` 가 1280px·390px 화면을 찍어 가로 넘침과 글자가 세로로 쌓인 표 칸을 찾는다. `pdf.py` 는 쪽마다 얼마나 찼는지 재서 큰 빈자리와 거의 빈 마지막 쪽을 알린다.
 - 스타일은 `report.css` 하나뿐이고 원고에서 바꿀 수 없다. 밝은 화면과 어두운 화면을 모두 지원한다.
 - 이미지까지 HTML 안에 들어가서 파일 하나만 주고받으면 된다.
 - QA 보고에서는 `capture.py` 가 필요한 영역만 2배 해상도로 찍고, 결함은 관찰·기대·증거·조치 카드로 남는다. 코드만 읽은 검수는 `evidence: code` 로 두고 증거에 코드를 넣는다.
@@ -69,7 +69,7 @@ ln -s "$PWD/ko-report/plugins/ko-report/skills/report" ~/.claude/skills/report
 2. 종류별 틀을 복사해 원고(md)를 쓴다. 모르는 값은 지어내지 않고 `[확인 필요: 무엇]` 으로 남긴다
 3. `check.py` 가 `READY` 가 될 때까지 원고를 고친다
 4. HTML 로 빌드하고 `preview.py` 로 화면 두 폭을 찍는다. 필요하면 PDF 로 내고 쪽 품질을 본다
-5. 찍은 화면과 PDF 쪽 이미지를 직접 보고, 결과 파일·검사 판정·빈칸·화면 확인 결과를 보고한다
+5. 찍은 화면과 PDF 쪽 이미지를 직접 보고 결과 파일·검사 판정·빈칸·화면 확인 결과를 보고한다
 
 ## 원고 모양
 
@@ -102,7 +102,14 @@ basis: 스테이징 · v2.3.1 · 10/5 오전
 :::
 ```
 
-블록은 숫자 타일(`tiles`), 강조 상자(`callout`), 캡처 묶음(`shots`), 결함 카드(`defect`), 막대 그래프(`bars`), 차트(`chart` bar·line·donut), 흐름 단계(`steps`), 화면 카드(`screen`), 장면 카드(`scene`) 아홉 가지다. 화면설계서·스토리보드는 `label:` 로 머리 표시를 바꾸고 `numbering: off` 로 절 번호를 끈다. 머리글이 상태·결과·판정인 열에 "통과", "실패", "진행" 같은 상태 단어를 쓰면 색 딱지가 된다. `[확인 필요: 무엇]` 은 어디에 있든 노랗게 남는다. 긴 절 제목은 `## 긴 제목 | 목차 이름` 으로 목차를 짧게 한다. 전체 문법은 [`references/components.md`](plugins/ko-report/skills/report/references/components.md).
+블록은 숫자 타일(`tiles`), 강조 상자(`callout`), 캡처 묶음(`shots`), 결함 카드(`defect`), 막대 그래프(`bars`), 차트(`chart` bar·line·donut), 흐름 단계(`steps`), 화면 카드(`screen`), 장면 카드(`scene`) 아홉 가지다.
+
+- 화면설계서·스토리보드는 `label:` 로 머리 표시를 바꾸고 `numbering: off` 로 절 번호를 끈다.
+- 머리글이 상태·결과·판정인 열에 "통과", "실패", "진행" 같은 상태 단어를 쓰면 색 딱지가 된다.
+- `[확인 필요: 무엇]` 은 어디에 있든 노랗게 남는다.
+- 긴 절 제목은 `## 긴 제목 | 목차 이름` 으로 목차를 짧게 한다.
+
+전체 문법은 [`references/components.md`](plugins/ko-report/skills/report/references/components.md).
 
 ## 직접 돌리기
 
@@ -115,7 +122,7 @@ uv run --with playwright --with pypdf --with pypdfium2 python $S/pdf.py 원고.h
 uv run --with playwright python $S/capture.py shots.txt -o shots/ --hide .toast  # QA 캡처
 ```
 
-`check.py` 결과는 `ERROR`(반드시 고침), `WARN`(읽고 판단), `GAP`(빈칸, 사용자에게 알림) 세 가지다. `pdf.py` 는 쪽 품질 경고가 있어도 성공으로 끝나고, `--strict` 를 주면 실패로 끝난다.
+`check.py` 결과는 `ERROR`(반드시 고침), `WARN`(읽고 판단), `GAP`(빈칸, 사용자에게 알림) 세 가지다. `pdf.py` 는 쪽 품질 경고가 있어도 성공으로 끝나고 `--strict` 를 주면 실패로 끝난다.
 
 ## 글쓰기 규칙 (요약)
 
