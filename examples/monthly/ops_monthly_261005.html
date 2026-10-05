@@ -73,12 +73,15 @@ header.doc { display: grid; gap: 10px; padding-bottom: 18px; border-bottom: 2px 
 .badge.internal { background: var(--warn-bg); color: var(--warn); }
 h1 { margin: 0; font-size: clamp(26px, 3.6vw, 34px); font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; text-wrap: balance; }
 .meta { margin: 0; font-size: 14px; color: var(--muted); }
+.meta-grid { display: none; }
 
 section.sec { display: grid; gap: 14px; scroll-margin-top: 24px; }
 section.sec.lead { background: var(--accent-soft); border-radius: 8px; padding: 20px 22px; }
 section.sec.lead .tile { background: var(--paper); }
 h2 { margin: 0; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 20px; font-weight: 700; line-height: 1.4; letter-spacing: -0.015em; color: var(--accent); display: flex; gap: 10px; align-items: baseline; text-wrap: balance; }
-h2 .no { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--muted); }
+h2 .no { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; flex: none; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 h3 { margin: 8px 0 0; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
 p { margin: 0; max-width: 72ch; text-wrap: pretty; }
 section.sec > ul, section.sec > ol { margin: 0; padding-left: 1.15em; display: grid; gap: 8px; max-width: 72ch; }
@@ -120,16 +123,21 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
 .callout.ok { border-color: var(--ok); background: var(--ok-bg); } .callout.warn { border-color: var(--warn); background: var(--warn-bg); }
 .callout.bad { border-color: var(--bad); background: var(--bad-bg); } .callout.info { border-color: var(--info); background: var(--info-bg); }
 .callout p { max-width: none; }
+.callout .ttl { font-weight: 700; }
 
 /* 캡처 */
 figure { margin: 0; display: grid; gap: 6px; }
 figure img { width: 100%; height: auto; max-height: 560px; object-fit: contain; object-position: top center; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: zoom-in; }
 figcaption { font-size: 13.5px; color: var(--muted); }
 .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.shots.c1 { grid-template-columns: minmax(0, 1fr); }
+.shots.c3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .lightbox { position: fixed; inset: 0; background: rgba(10, 14, 20, 0.86); display: grid; place-items: center; padding: 24px; z-index: 10; cursor: zoom-out; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; background: #fff; }
 
 /* 빈칸 [확인 필요: …] */
+mark.gap.short { white-space: nowrap; }
+.tok { overflow-wrap: anywhere; }
 mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; padding: 0 4px; border-radius: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 
 /* 결함 카드 (QA) */
@@ -151,8 +159,17 @@ mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; pad
 .screen .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .screen .id { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 .screen .id:empty { display: none; }
-.screen .ttl { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.screen .ttl { margin: 0; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
 .screen .body { display: grid; gap: 12px; }
+.screen > *, .screen .body > * { min-width: 0; }
+.screen .menu { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 9px; }
+.screen .does { font-weight: 500; max-width: none; }
+.screen .memo { font-size: 14px; color: var(--muted); max-width: none; }
+.screen .memo b { font-weight: 600; margin-right: 10px; }
+.screen .elements table { table-layout: fixed; min-width: 560px; }   /* 좁은 화면은 칸을 찌그러뜨리지 않고 가로로 민다 */
+.screen .elements.cols3 th:nth-child(1) { width: 22%; }
+.screen .elements.cols3 th:nth-child(2), .screen .elements.cols3 th:nth-child(3) { width: 39%; }
+.screen .elements .tbl { overflow-x: auto; }
 .screen .pic:empty { display: none; }
 .screen .pic { display: grid; gap: 10px; }
 .screen dl { margin: 0; display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: 6px 14px; font-size: 14.5px; }
@@ -166,6 +183,8 @@ mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; pad
 .steps .n { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--paper); font: 600 13px/28px var(--mono); text-align: center; position: relative; z-index: 1; }
 .steps li b { font-weight: 600; display: block; line-height: 1.5; padding-top: 2px; }
 .steps li p { font-size: 14px; color: var(--muted); line-height: 1.55; }
+.steps.v li > div { display: flex; flex-wrap: wrap; column-gap: 10px; align-items: baseline; }   /* 짧은 설명은 단계 이름 옆에 */
+.steps.v li > div p { max-width: none; }
 .steps.v li:not(:last-child)::after { content: ""; position: absolute; left: 13px; top: 30px; bottom: -12px; width: 2px; background: var(--line); }
 .steps.h ol { grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 0 14px; }
 .steps.h li { grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -285,10 +304,23 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   .layout-web figure img { max-height: 680px; }
   .layout-web .chart svg { max-width: 760px; }
   .layout-web .group.charts .chart svg { max-width: none; }
-  .layout-web .screen .body { grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); align-items: start; gap: 20px; }
+  .layout-web .screen.side .body, .layout-web .screen.scene .body { grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); align-items: start; gap: 20px; }
   .layout-web .screen .body:has(.pic:empty) { grid-template-columns: minmax(0, 1fr); }
-  .layout-web .screen dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-  .layout-web .screen dd { margin-bottom: 10px; }
+  .layout-web .screen.side dl, .layout-web .screen.scene dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .layout-web .screen.side dd, .layout-web .screen.scene dd { margin-bottom: 10px; }
+
+  /* 머리 정보: 이름 붙인 세 칸 */
+  .layout-web header.doc .meta { display: none; }
+  .layout-web .meta-grid { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 6px 32px; font-size: 14px; }
+  .layout-web .meta-grid div { display: grid; gap: 1px; min-width: 0; max-width: 60ch; }
+  .layout-web .meta-grid dt { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .layout-web .meta-grid dd { margin: 0; }
+
+  /* 결론 숫자: 떠 있는 카드 대신 가는 선으로 나눈 한 줄(지표 띠) */
+  .layout-web section.sec.lead .tiles { gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .layout-web section.sec.lead .tile { border: 0; border-radius: 0; box-shadow: inset 0 3px 0 var(--accent); }
+  .layout-web section.sec.lead .tile.ok { box-shadow: inset 0 3px 0 var(--ok); } .layout-web section.sec.lead .tile.warn { box-shadow: inset 0 3px 0 var(--warn); }
+  .layout-web section.sec.lead .tile.bad { box-shadow: inset 0 3px 0 var(--bad); } .layout-web section.sec.lead .tile.info { box-shadow: inset 0 3px 0 var(--info); }
 }
 
 /* 인쇄·PDF: 같은 문서를 A4 로. 화면 테마와 관계없이 밝은 색으로 낸다.
@@ -350,8 +382,13 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   .bar { font-size: 8.5pt; }
   .bar .track { height: 8pt; }
 
-  /* 표: 화면용 가로 스크롤 상자를 풀어야 쪽을 넘는 표 뒤 글자가 겹치지 않는다 */
-  .tbl { overflow: visible; }
+  /* 표: 화면용 가로 스크롤 상자를 풀어야 쪽을 넘는 표 뒤 글자가 겹치지 않는다.
+     테두리 상자도 뺀다. 쪽을 넘는 표에서 상자 아래쪽이 쪽 끝까지 빈 띠로 남기 때문이다. 가로줄만 쓴다. */
+  .tbl { overflow: visible; border: 0; border-radius: 0; }
+  thead th { border-bottom: 0.6pt solid var(--line); }
+  tbody tr:last-child td { border-bottom: 0.6pt solid var(--line); }
+  .tbl + * { margin-top: 8pt !important; }
+  section.sec > h2 + p { break-after: avoid; }   /* 제목 바로 뒤 안내 문장은 다음 덩어리와 함께 */
   nav.toc a { color: inherit; }
   figure img { max-height: 110mm; cursor: auto; }
   .defect figure img { max-height: 80mm; }
@@ -374,14 +411,25 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   .screen dl { font-size: 8.8pt; gap: 3pt 10pt; }
   .screen .id { font-size: 8pt; }
   .screen figure img, .type-spec figure img { max-height: 90mm; }
+  .screen .elements table { min-width: 0; }
   /* 스토리보드 장면은 그림 왼쪽·설명 오른쪽으로 놓아 한 쪽에 두세 장면이 들어가게 한다 */
   .screen.scene { break-inside: avoid; }
   .screen.scene .body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 9pt; align-items: start; break-inside: avoid; }
   .screen.scene .body > * + * { margin-top: 0; }
   .screen.scene dl { grid-template-columns: minmax(0, 1fr); gap: 1pt; }
   .screen.scene dd { margin-bottom: 4pt; }
-  .screen.scene figure img { max-height: 80mm; }
-  .group, .screen, .screen .body { display: block; }
+  .screen.scene figure img { max-height: 85mm; }
+  .group, .screen, .screen .body, .screen .pic { display: block; }
+  .screen .pic > * + * { margin-top: 6pt; }
+  .shots.c1 { grid-template-columns: minmax(0, 1fr); }
+  .shots.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .type-spec .shots:not(.c2):not(.c3) { grid-template-columns: minmax(0, 1fr); }   /* 화면 캡처는 한 줄에 한 장이 기본 */
+  .screen .does, .screen .menu { font-size: 9pt; }
+  .screen .memo { font-size: 8.5pt; }
+  .screen .head, .screen .does { break-after: avoid; }
+  .screen .pic + .elements, .screen .memo { break-before: avoid; }
+  /* 쪽을 넘는 화면 카드는 테두리 상자 대신 위쪽 선 하나(상자 아래가 빈 띠로 남지 않게). 장면 카드는 쪽을 넘지 않아 상자 유지 */
+  .screen:not(.scene) { border: 0; border-top: 0.8pt solid var(--accent); border-radius: 0; padding: 7pt 0 0; }
   .group.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10pt; }
   .group.charts > * + * { margin-top: 0; }
   .group.callouts > * + *, .screen > * + *, .screen .body > * + * { margin-top: 6pt; }
@@ -392,7 +440,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
 
   figure, .tiles, .tile, .defect, tr, .callout, .bar, .bars, .chart, .steps, .screen dl, .screen .head { break-inside: avoid; }
   h2, h3, .screen .head, .defect .head, .steps .cap, .bars .cap, .chart .cap { break-after: avoid; }
-  .screen .head + .body, .screen .pic > :first-child, .screen .pic + dl { break-before: avoid; }
+  .screen .head + .body, .screen .head + .pic > :first-child, .screen .does + .pic > :first-child, .screen .does + .body, .screen .pic + dl { break-before: avoid; }
   h2 + *, h3 + * { break-before: avoid; }
   thead { display: table-header-group; }
   .lightbox { display: none; }
@@ -403,13 +451,14 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
 </head>
 <body class="layout-web type-analysis">
 <div class="wrap">
-  <nav class="side" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 주문 추이</a></li><li><a href="#s3">3 재구매와 배송</a></li><li><a href="#s4">4 지연 원인</a></li><li><a href="#s5">5 권고</a></li><li><a href="#s6">6 정할 것</a></li><li><a href="#s7">7 부록 집계 기준</a></li></ol></nav>
+  <nav class="side" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1&nbsp;결론</a></li><li><a href="#s2">2&nbsp;주문 추이</a></li><li><a href="#s3">3&nbsp;재구매와 배송</a></li><li><a href="#s4">4&nbsp;지연 원인</a></li><li><a href="#s5">5&nbsp;권고</a></li><li><a href="#s6">6&nbsp;정할 것</a></li><li><a href="#s7">7&nbsp;부록 집계 기준</a></li></ol></nav>
   <main>
     <header class="doc">
       <p class="eyebrow">분석 보고 <span class="badge internal">내부용</span></p>
       <h1>솔방울마켓 9월 운영 분석, 주문은 늘었는데 왜 재구매가 줄었나</h1>
       <p class="meta">2026-10-05 · 커머스팀 데이터 · 주문·회원 DB 9/1~9/30 집계 · 10/4 조회 · 가상 예시 자료</p>
-      <nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 주문 추이</a></li><li><a href="#s3">3 재구매와 배송</a></li><li><a href="#s4">4 지연 원인</a></li><li><a href="#s5">5 권고</a></li><li><a href="#s6">6 정할 것</a></li><li><a href="#s7">7 부록 집계 기준</a></li></ol></nav>
+      <dl class="meta-grid"><div><dt>날짜</dt><dd>2026-10-05</dd></div><div><dt>작성</dt><dd>커머스팀 데이터</dd></div><div><dt>기준</dt><dd>주문·회원 DB 9/1~9/30 집계 · 10/4 조회 · 가상 예시 자료</dd></div></dl>
+      <nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1&nbsp;결론</a></li><li><a href="#s2">2&nbsp;주문 추이</a></li><li><a href="#s3">3&nbsp;재구매와 배송</a></li><li><a href="#s4">4&nbsp;지연 원인</a></li><li><a href="#s5">5&nbsp;권고</a></li><li><a href="#s6">6&nbsp;정할 것</a></li><li><a href="#s7">7&nbsp;부록 집계 기준</a></li></ol></nav>
       
     </header>
 <section class="sec lead" id="s1">
@@ -491,7 +540,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
 <tr>
 <th>권고</th>
 <th>기대 효과</th>
-<th>비용·위험</th>
+<th>비용⁠·위험</th>
 </tr>
 </thead>
 <tbody>
@@ -571,7 +620,7 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
 </tr>
 <tr>
 <td>자료</td>
-<td>가상 예시 자료. 실제 회사·고객과 무관</td>
+<td>가상 예시 자료. 실제 회사⁠·고객과 무관</td>
 </tr>
 </tbody>
 </table></div>

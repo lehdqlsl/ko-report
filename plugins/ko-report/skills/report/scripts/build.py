@@ -3,10 +3,13 @@
 사용: uv run --with markdown --with pillow python build.py 원고.md [-o 결과.html] [--layout web]
 
 원고 규칙(자세히는 references/components.md):
-- 맨 위 front matter: title, type, audience(internal|external), date, author, basis, layout(doc|web)
+- 맨 위 front matter: title, type, audience(internal|external), date, author, basis, layout(doc|web),
+  label(머리 표시 바꾸기), numbering(off 면 절 번호 없음)
 - ## 로 절을 나눈다. 첫 절은 결론이다(lead 로 강조). "## 긴 제목 | 짧은 이름" 이면 목차에는 짧은 이름.
 - 블록: :::tiles / :::callout <색> / :::shots / :::defect <ID> | <제목> | <상태> / :::bars <제목>
-        :::chart <bar|line|donut> <제목> / :::steps <제목> / :::screen <번호> | <화면 이름>
+        :::chart <bar|line|donut> <제목> / :::steps <제목> / :::screen <번호> | <화면 이름> | <메뉴>
+        :::scene <장면 N> | <화면 X>
+- 이미지가 없으면 HTML 은 만들되 exit 1.
 - 상태 딱지는 머리글에 상태·결과·판정·진행·평가가 들어간 열에서만 붙는다.
 - [확인 필요: …] 는 어디에 있든 노란 표시로 남는다.
 - 이미지(로컬 파일)는 base64 로 HTML 안에 넣는다. 결과는 파일 하나.
@@ -47,10 +50,12 @@ PILL_HEADERS = ("상태", "결과", "판정", "진행", "평가")
 COLORS = {"ok", "warn", "bad", "info"}
 CARD_KEYS = {
     "defect": ["관찰", "기대", "증거", "조치", "원인", "재현", "추정"],
-    "screen": ["하는 일", "보이는 것", "누르면", "누름", "그러면", "이후", "규칙", "권한", "비고"],
 }
+SCREEN_KEYS = ["하는 일", "보이는 것", "누르면", "누름", "그러면", "이후", "규칙", "권한", "비고", "메모"]
+SCENE_KEYS = {"누름", "그러면", "이후"}
 IMG_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 KEY_COL_MAX = 20  # 첫 열이 전부 이 글자 수 이하이면 이름 열로 보고 굵게
+ERRORS: list[str] = []   # 빌드는 끝까지 하되 하나라도 있으면 exit 1
 
 
 def parse_front(text: str) -> tuple[dict, str]:
@@ -71,6 +76,7 @@ def img_src(path: str, base: Path) -> str:
         return path
     p = (base / path).resolve()
     if not p.exists():
+        ERRORS.append(f"이미지 없음: {path}")
         print(f"ERROR 이미지 없음: {path}", file=sys.stderr)
         return path
     data, mime = p.read_bytes(), mimetypes.guess_type(p.name)[0] or "image/png"
@@ -188,23 +194,22 @@ def render_block(kind: str, arg: str, body: str, base: Path) -> str:
         long = " long xlong" if longest > 5.0 else " long" if longest > 4.0 else ""  # 한 줄 안에서는 같은 크기로
         return f'<div class="tiles n{len(cells)}{long}">{"".join(cells)}</div>'
     if kind == "callout":
-        cls = arg if arg in COLORS else ""
-        return f'<div class="callout {cls}">{markdown.markdown(body, extensions=["attr_list"])}</div>'
+        color, _, ttl = arg.partition(" ")
+        if color not in COLORS:   # ":::callout 제목" 처럼 색 없이
+            color, ttl = "", arg
+        ttl_h = f'<p class="ttl">{html.escape(ttl.strip())}</p>' if ttl.strip() else ""
+        return f'<div class="callout {color}">{ttl_h}{markdown.markdown(body, extensions=["attr_list", "tables"])}</div>'
     if kind == "shots":
         figs = [figure(m.group(1), m.group(2), base) for m in IMG_RE.finditer(body)]
-        return f'<div class="shots n{len(figs)}">{"".join(figs)}</div>'
-    if kind in ("defect", "screen"):
+        cols = f" c{arg}" if arg in ("1", "2", "3") else ""   # ":::shots 1" = 한 줄에 한 장
+        return f'<div class="shots n{len(figs)}{cols}">{"".join(figs)}</div>'
+    if kind in ("screen", "scene"):
+        return render_screen(kind, arg, body, base)
+    if kind == "defect":
         parts = [p.strip() for p in arg.split("|")]
-        if kind == "screen" and len(parts) == 1:  # ":::screen 화면 이름" 처럼 번호 없이
-            parts = ["", parts[0]]
         did, title = parts[0] if parts else "", parts[1] if len(parts) > 1 else ""
         head, rows = card_rows(body, CARD_KEYS[kind])
         lead = md_rich("\n".join(head), base) if "".join(head).strip() else ""
-        if kind == "screen":
-            scene = " scene" if any(k in ("누름", "그러면", "이후") for k, _ in rows) else ""  # 스토리보드 장면
-            return (f'<div class="screen{scene}"><div class="head"><span class="id">{html.escape(did)}</span>'
-                    f'<span class="ttl">{html.escape(title)}</span></div>'
-                    f'<div class="body"><div class="pic">{lead}</div><dl>{dl(rows, base)}</dl></div></div>')
         status = parts[2] if len(parts) > 2 else ""
         cls = WORD2CLS.get(status, "bad")
         pill = f'<span class="pill {cls}">{html.escape(status)}</span>' if status else ""
@@ -234,6 +239,84 @@ def render_block(kind: str, arg: str, body: str, base: Path) -> str:
         cap = f'<div class="cap">{html.escape(arg)}</div>' if arg else ""
         return f'<div class="steps {"h" if horiz else "v"}">{cap}<ol style="--n:{len(items)}">{lis}</ol></div>'
     return f"<!-- 알 수 없는 블록 {kind} -->"
+
+
+def render_screen(kind: str, arg: str, body: str, base: Path) -> str:
+    """화면 카드(:::screen 번호 | 이름 | 메뉴)와 장면 카드(:::scene 장면 N | 화면 X).
+    본문 줄: 키 줄(하는 일·보이는 것·누르면·누름·그러면·이후·규칙·권한·비고·메모), 그림 줄, 표 줄(| 로 시작).
+    화면: 머리 → 하는 일 한 줄 → 그림 → 요소 표 → 나머지 칸 → 메모. 장면: 머리 → [그림 | 누름·그러면] → 표."""
+    parts = [p.strip() for p in arg.split("|")]
+    if len(parts) == 1:  # ":::screen 화면 이름" 처럼 번호 없이
+        parts = ["", parts[0]]
+    sid, title = parts[0], parts[1] if len(parts) > 1 else ""
+    menu = parts[2] if len(parts) > 2 else ""
+    key_re = re.compile(r"^\s*(" + "|".join(map(re.escape, SCREEN_KEYS)) + r")\s*[:：]\s?(.*)$")
+    pics: list[str] = []
+    tables: list[list[str]] = []
+    rows: list[list] = []
+    pre: list[str] = []    # 그림·표 앞 글(하는 일 다음에 놓임)
+    post: list[str] = []   # 그림·표 뒤 글
+    cur = None
+    fence = None
+    in_table = False
+    for line in body.strip("\n").splitlines():
+        st = line.strip()
+        extra = post if (pics or tables) else pre
+        if not st and not fence:   # 빈 줄은 칸·표를 끝낸다
+            cur, in_table = None, False
+            extra.append("")
+            continue
+        if fence:
+            (cur if cur is not None else extra).append(line)
+            if st.startswith(fence):
+                fence = None
+            continue
+        if re.match(r"^(`{3,}|~{3,})", st):
+            fence = st[:3]
+            (cur if cur is not None else extra).extend(["", line])
+            in_table = False
+            continue
+        if st.startswith("|"):
+            if not in_table:
+                tables.append([])
+                in_table = True
+            tables[-1].append(st)
+            cur = None
+            continue
+        in_table = False
+        if IMG_RE.fullmatch(st):
+            pics.append(st)
+            cur = None
+            continue
+        m = key_re.match(line)
+        if m:
+            rows.append([m.group(1), [m.group(2)]])
+            cur = rows[-1][1]
+        elif st:
+            (cur if cur is not None else extra).append(line)
+    scene = kind == "scene" or any(k in SCENE_KEYS for k, _ in rows)
+    does = next((v for k, v in rows if k == "하는 일"), None)
+    memo = next((v for k, v in rows if k == "메모"), None)
+    other = [r for r in rows if r[0] not in ("하는 일", "메모")]
+    head = (f'<div class="head"><span class="id">{html.escape(sid)}</span><h3 class="ttl">{html.escape(title)}</h3>'
+            + (f'<span class="menu">{html.escape(menu)}</span>' if menu else "") + "</div>")
+    does_h = f'<p class="does">{md_inline(chr(10).join(does))}</p>' if does else ""
+    pic_h = f'<div class="pic">{"".join(md_rich(p, base) for p in pics)}</div>' if pics else '<div class="pic"></div>'
+    tbl_h = ""
+    for t in tables:
+        ncol = len([c for c in t[0].strip("|").split("|")])
+        tbl_h += f'<div class="elements cols{ncol}">' + markdown.markdown("\n".join(t), extensions=["tables"]) + "</div>"
+    dl_h = f"<dl>{dl(other, base)}</dl>" if other else ""
+    pre_h = md_rich("\n".join(pre), base) if "".join(pre).strip() else ""
+    extra_h = md_rich("\n".join(post), base) if "".join(post).strip() else ""
+    memo_h = f'<p class="memo"><b>메모</b>{md_inline(chr(10).join(memo))}</p>' if memo else ""
+    if scene:
+        return (f'<div class="screen scene">{head}{does_h}{pre_h}<div class="body">{pic_h}{dl_h}</div>'
+                f'{tbl_h}{extra_h}{memo_h}</div>')
+    side = " side" if dl_h and not tables else ""   # 그림 옆에 설명(넓은 화면)
+    if side:
+        return f'<div class="screen{side}">{head}{does_h}{pre_h}<div class="body">{pic_h}{dl_h}</div>{extra_h}{memo_h}</div>'
+    return f'<div class="screen">{head}{does_h}{pre_h}{pic_h}{tbl_h}{dl_h}{extra_h}{memo_h}</div>'
 
 
 # ---------- :::chart (인라인 SVG, 색은 CSS 토큰) ----------
@@ -467,10 +550,26 @@ def decorate(body: str) -> str:
     # 본문 이미지 → figure
     body = re.sub(r'<p><img alt="([^"]*)" src="([^"]+)" ?/?></p>',
                   lambda m: f'<figure><img src="{m.group(2)}" alt="{m.group(1)}" loading="lazy"><figcaption>{m.group(1)}</figcaption></figure>', body)
-    # [확인 필요: …] → 표시(태그 밖 글자에서만)
+    # 태그 밖 글자만 손본다(코드 안은 그대로)
     parts = re.split(r"(<[^>]+>)", body)
-    for i in range(0, len(parts), 2):
-        parts[i] = re.sub(r"\[확인 필요[^\]]*\]", lambda m: f'<mark class="gap">{m.group(0)}</mark>', parts[i])
+    in_code, in_cell = 0, 0
+    for i, part in enumerate(parts):
+        if i % 2:
+            tag = re.match(r"</?(\w+)", part)
+            name = tag.group(1).lower() if tag else ""
+            if name in ("code", "pre"):
+                in_code += -1 if part.startswith("</") else 1
+            elif name in ("td", "th"):
+                in_cell = 0 if part.startswith("</") else 1
+            continue
+        if in_code:
+            continue
+        t = re.sub(r"\[확인 필요[^\]]*\]",
+                   lambda m: f'<mark class="gap{" short" if len(m.group(0)) <= 16 else ""}">{m.group(0)}</mark>', part)
+        t = re.sub(r"(?<=\S)·", "\u2060·", t)   # 가운뎃점 앞에서 줄이 바뀌지 않게(낱말 잇기 문자)
+        if in_cell:   # 표 칸의 긴 영문 식별자는 아무 데서나 끊어 표가 넓어지지 않게
+            t = re.sub(r"[A-Za-z0-9_./:\-]{18,}", lambda m: f'<span class="tok">{m.group(0)}</span>', t)
+        parts[i] = t
     return "".join(parts)
 
 
@@ -480,6 +579,7 @@ def build(src: Path, out: Path, layout: str | None = None) -> None:
         meta["layout"] = layout
     base = src.parent
     web = meta.get("layout", "doc") == "web"
+    numbered = meta.get("numbering", "on") != "off"
     text, frags = expand_blocks(text, base)
     # 일반 본문 이미지도 base64 로
     text = IMG_RE.sub(lambda m: f"![{m.group(1)}]({img_src(m.group(2), base)})", text)
@@ -504,8 +604,9 @@ def build(src: Path, out: Path, layout: str | None = None) -> None:
         raw = re.sub(r"^\d+\.\s*", "", m.group(1)).strip()
         name, _, short = raw.partition(" | ")
         short = strip_tags(short) or re.sub(r" [(（].*", "", strip_tags(name))
-        h2 = f'<h2><span class="no">{n}</span>{name}</h2>'
-        toc.append(f'<li><a href="#s{n}">{n} {html.escape(short)}</a></li>')
+        no = f'<span class="no">{n}</span>' if numbered else ""
+        h2 = f'<h2>{no}{name}</h2>'
+        toc.append(f'<li><a href="#s{n}">{f"{n}&nbsp;" if numbered else ""}{html.escape(short)}</a></li>')
         content = p.replace(m.group(0), "", 1)
         appendix = web and n > 1 and strip_tags(name).startswith("부록")
         if appendix:
@@ -516,9 +617,13 @@ def build(src: Path, out: Path, layout: str | None = None) -> None:
     rtype = meta.get("type", "")
     audience = meta.get("audience", "internal")
     badge = '<span class="badge internal">내부용</span>' if audience != "external" else '<span class="badge">대외</span>'
-    label = TYPE_LABEL.get(rtype, "보고")
+    label = html.escape(meta.get("label") or TYPE_LABEL.get(rtype, "보고"))
     meta_line = " · ".join(x for x in [meta.get("date", ""), meta.get("author", ""), meta.get("basis", "")] if x)
     toc_html = "".join(toc)
+    # web 넓은 화면: 날짜·작성·기준을 이름 붙여 나눠 보인다(가운뎃점으로 이은 한 줄 대신)
+    meta_grid = "" if not web else '<dl class="meta-grid">' + "".join(
+        f"<div><dt>{k}</dt><dd>{html.escape(meta[f])}</dd></div>"
+        for k, f in (("날짜", "date"), ("작성", "author"), ("기준", "basis")) if meta.get(f)) + "</dl>"
     side = f'<nav class="side" aria-label="목차"><p>목차</p><ol>{toc_html}</ol></nav>' if web else ""
     footer = f'<footer>{html.escape(meta["footer"])}</footer>' if meta.get("footer") else ""
     page = f"""<!doctype html>
@@ -544,6 +649,7 @@ def build(src: Path, out: Path, layout: str | None = None) -> None:
       <p class="eyebrow">{label} {badge}</p>
       <h1>{html.escape(title)}</h1>
       {f'<p class="meta">{html.escape(meta_line)}</p>' if meta_line else ""}
+      {meta_grid}
       <nav class="toc" aria-label="목차"><p>목차</p><ol>{toc_html}</ol></nav>
       {pre}
     </header>
@@ -557,7 +663,9 @@ def build(src: Path, out: Path, layout: str | None = None) -> None:
 </html>
 """
     out.write_text(page, encoding="utf-8")
-    print(f"OK {out} ({len(page) // 1024}KB, 절 {n}개{', web' if web else ''})")
+    print(f"OK {out} ({out.stat().st_size // 1024}KB, 절 {n}개{', web' if web else ''})")
+    for e in ERRORS:
+        print(f"ERROR {e}")
 
 
 def main() -> None:
@@ -569,6 +677,8 @@ def main() -> None:
     src = Path(a.src)
     out = Path(a.out) if a.out else src.with_suffix(".html")
     build(src, out, a.layout)
+    if ERRORS:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

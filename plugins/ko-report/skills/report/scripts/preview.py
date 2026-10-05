@@ -30,6 +30,7 @@ PROBE = r"""() => {
     const cs = getComputedStyle(td), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
     let bad = 0, node, at = '';
     while ((node = walker.nextNode()) && !bad) {
+      if (node.parentElement.closest('.tok, code')) continue;   // 긴 식별자는 일부러 아무 데서나 끊는다
       const t = node.textContent; let prevTop = null;
       for (let i = 0; i < t.length; i++) {
         const rg = document.createRange(); rg.setStart(node, i); rg.setEnd(node, i + 1);
