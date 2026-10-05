@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "ko-report",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "진행·완료·QA·제안·분석·장애 보고서와 정책·화면 설계 문서를 짧고 일관된 HTML 로. 분량·AI 티·대외 금칙·화면·쪽 품질 검사 포함.",
       "category": "documents",
       "source": "./plugins/ko-report"

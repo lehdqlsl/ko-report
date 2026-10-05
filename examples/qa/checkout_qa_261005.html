@@ -101,6 +101,7 @@ tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--accent-soft) 
 td:first-child { min-width: 4.5em; }
 .tbl.keycol td:first-child { font-weight: 600; }   /* 첫 열이 짧은 이름일 때만(build.py 가 판정) */
 td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.ralign { text-align: right; }   /* 숫자 열 안의 글자 칸 */
 
 /* 상태 딱지 */
 .pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
@@ -206,18 +207,18 @@ mark.gap { background: var(--warn-bg); color: var(--warn); font-weight: 600; pad
 .chart .col.bad, .chart .dot.bad { fill: var(--bad); } .chart .col.info, .chart .dot.info { fill: var(--info); }
 .chart.k-donut .plot { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; overflow: visible; }
 .chart.k-donut svg { width: 168px; min-width: 0; flex: none; }
-.chart .seg { stroke: var(--paper); stroke-width: 2; }
 .chart .ctr { fill: var(--ink); font-size: 22px; font-weight: 700; }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; min-width: 200px; max-width: 380px; flex: 1; }
 .legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto 3.2em; gap: 8px; align-items: center; }
 .legend b { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .legend em { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .sw { width: 12px; height: 12px; border-radius: 3px; background: var(--accent); }
-.seg.c1 { fill: var(--c1); } .seg.c2 { fill: var(--c2); } .seg.c3 { fill: var(--c3); } .seg.c4 { fill: var(--c4); }
-.seg.c5 { fill: var(--c5); } .seg.c6 { fill: var(--c6); } .seg.c7 { fill: var(--c7); } .seg.c8 { fill: var(--c8); }
-.seg.ok { fill: var(--ok); } .seg.warn { fill: var(--warn); } .seg.bad { fill: var(--bad); } .seg.info { fill: var(--info); }
-circle.seg { fill: none; }
-circle.seg.c1 { stroke: var(--c1); } circle.seg.c2 { stroke: var(--c2); } circle.seg.ok { stroke: var(--ok); } circle.seg.info { stroke: var(--info); }
+/* 도넛 조각: 색은 변수(--seg) 하나로 받고, 조각(path)은 채우기, 100% 한 조각(circle.ring)은 굵은 고리로 그린다 */
+.seg.c1 { --seg: var(--c1); } .seg.c2 { --seg: var(--c2); } .seg.c3 { --seg: var(--c3); } .seg.c4 { --seg: var(--c4); }
+.seg.c5 { --seg: var(--c5); } .seg.c6 { --seg: var(--c6); } .seg.c7 { --seg: var(--c7); } .seg.c8 { --seg: var(--c8); }
+.seg.ok { --seg: var(--ok); } .seg.warn { --seg: var(--warn); } .seg.bad { --seg: var(--bad); } .seg.info { --seg: var(--info); }
+.chart path.seg { fill: var(--seg, var(--accent)); stroke: var(--paper); stroke-width: 2; }
+.chart circle.seg.ring { fill: none; stroke: var(--seg, var(--accent)); }   /* 굵기는 요소의 stroke-width 속성 그대로 */
 .sw.c1 { background: var(--c1); } .sw.c2 { background: var(--c2); } .sw.c3 { background: var(--c3); } .sw.c4 { background: var(--c4); }
 .sw.c5 { background: var(--c5); } .sw.c6 { background: var(--c6); } .sw.c7 { background: var(--c7); } .sw.c8 { background: var(--c8); }
 .sw.ok { background: var(--ok); } .sw.warn { background: var(--warn); } .sw.bad { background: var(--bad); } .sw.info { background: var(--info); }
@@ -300,7 +301,9 @@ footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 
   .layout-web .group.callouts, .layout-web .group.charts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .layout-web .group.callouts .callout { align-content: start; }
   .layout-web .shots { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; }
-  .layout-web .shots.n1 { grid-template-columns: minmax(0, 1fr); }
+  .layout-web .shots.n1, .layout-web .shots.c1 { grid-template-columns: minmax(0, 1fr); }
+  .layout-web .shots.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout-web .shots.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .layout-web figure img { max-height: 680px; }
   .layout-web .chart svg { max-width: 760px; }
   .layout-web .group.charts .chart svg { max-width: none; }

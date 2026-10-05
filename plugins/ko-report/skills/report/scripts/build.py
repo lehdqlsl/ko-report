@@ -54,6 +54,7 @@ CARD_KEYS = {
 SCREEN_KEYS = ["하는 일", "보이는 것", "누르면", "누름", "그러면", "이후", "규칙", "권한", "비고", "메모"]
 SCENE_KEYS = {"누름", "그러면", "이후"}
 IMG_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+NUM_CELL = r"\s*[-+]?[\d.,]+\s*(?:%|건|개|명|초|분|원|달러|GB|MB|ms|배|쪽|자)?\s*"   # 숫자 칸(단위 하나까지)
 KEY_COL_MAX = 20  # 첫 열이 전부 이 글자 수 이하이면 이름 열로 보고 굵게
 ERRORS: list[str] = []   # 빌드는 끝까지 하되 하나라도 있으면 exit 1
 
@@ -442,7 +443,7 @@ def donut(items: list[tuple[str, float, str, str]], label: str) -> str:
         frac = max(v, 0) / total
         b = a + frac * 2 * math.pi
         if frac >= 0.9999:
-            segs.append(f'<circle class="seg {cls}" cx="{C}" cy="{C}" r="{(R + r) / 2}" fill="none" stroke-width="{R - r}"><title>{html.escape(lbl)}: {html.escape(raw)}</title></circle>')
+            segs.append(f'<circle class="seg ring {cls}" cx="{C}" cy="{C}" r="{(R + r) / 2}" fill="none" stroke-width="{R - r}"><title>{html.escape(lbl)}: {html.escape(raw)}</title></circle>')
         elif frac > 0:
             large = 1 if b - a > math.pi else 0
             p = lambda rad, ang: f"{C + rad * math.cos(ang):.2f},{C + rad * math.sin(ang):.2f}"  # noqa: E731
@@ -520,19 +521,38 @@ def deco_table(m: re.Match) -> str:
                 sm = STATUS_RE.match(txt)
                 if sm:
                     inner = f'<span class="pill {WORD2CLS[sm.group(1)]}">{sm.group(1)}</span>{html.escape(sm.group(2) or "")}'
-            if re.fullmatch(r"\s*[-+]?[\d.,]+\s*(?:%|건|개|명|초|분|원|달러|GB|MB|ms|배|쪽|자)?\s*", txt):
-                open_ = open_.replace("<td", '<td class="num"', 1)
+            if re.fullmatch(NUM_CELL, txt):
+                open_ = open_.replace("<td", "<td data-krn", 1)   # 숫자 칸 표지(열 단위로 정렬을 정한 뒤 지운다)
             return f"{open_}{inner}</td>"
 
         return re.sub(r"(<td[^>]*>)(.*?)</td>", cell, rm.group(0), flags=re.S)
 
     t = re.sub(r"<tr>.*?</tr>", row, t, flags=re.S)
-    # 숫자만 있는 열은 머리글도 오른쪽 정렬
+    # 정렬은 열 단위로 정한다: 비어 있지 않은 칸의 과반이 숫자면 그 열 전체(머리글 포함)를 오른쪽 정렬
     body_rows = re.findall(r"<tr>(.*?)</tr>", t.split("</thead>")[-1], re.S)
     cols = [re.findall(r"<td([^>]*)>(.*?)</td>", r, re.S) for r in body_rows]
-    numcols = {i for i in range(len(heads))
-               if any(i < len(c) and strip_tags(c[i][1]) for c in cols)
-               and all(i >= len(c) or not strip_tags(c[i][1]) or 'class="num"' in c[i][0] for c in cols)}
+    numcols = set()
+    for i in range(len(heads)):
+        filled = [c[i] for c in cols if i < len(c) and strip_tags(c[i][1])]
+        if filled and sum("data-krn" in a for a, _ in filled) * 2 > len(filled):
+            numcols.add(i)
+
+    def align(rm: re.Match) -> str:
+        idx = -1
+
+        def cell(cm: re.Match) -> str:
+            nonlocal idx
+            idx += 1
+            open_ = cm.group(1)
+            isnum = "data-krn" in open_
+            open_ = open_.replace(" data-krn", "", 1)
+            if idx in numcols:   # 숫자 칸은 줄바꿈 없이, 같은 열의 글자 칸("약 75분", "미수집")도 오른쪽
+                open_ = open_.replace("<td", f'<td class="{"num" if isnum else "ralign"}"', 1)
+            return f"{open_}{cm.group(2)}</td>"
+
+        return re.sub(r"(<td[^>]*>)(.*?)</td>", cell, rm.group(0), flags=re.S)
+
+    t = re.sub(r"<tr>.*?</tr>", align, t, flags=re.S)
     hi = -1
 
     def head(hm: re.Match) -> str:

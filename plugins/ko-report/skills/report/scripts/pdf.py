@@ -18,6 +18,16 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+LOAD_ALL = """async () => {
+  // 그림은 loading="lazy" 라 화면 밖 것은 아직 안 불렸다. 모두 즉시 불러 다 그린 뒤 찍는다.
+  const imgs = [...document.images];
+  imgs.forEach(i => { i.loading = 'eager'; });
+  await Promise.all(imgs.map(i => (i.complete && i.naturalWidth) ? null
+    : new Promise(r => { i.addEventListener('load', r, {once: true}); i.addEventListener('error', r, {once: true}); })));
+  await Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => null) : null));
+  return imgs.filter(i => !i.naturalWidth).length;
+}"""
+
 FOOTER = ('<div style="width:100%;font-size:8px;color:#5A6472;padding:0 14mm;display:flex;justify-content:space-between;'
           'font-family:\'Apple SD Gothic Neo\',\'Malgun Gothic\',sans-serif">'
           '<span>{title}</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
@@ -35,6 +45,7 @@ async def run(src: Path, out: Path) -> tuple[int, str, int]:
         pg = await b.new_page()
         await pg.goto(src.resolve().as_uri(), wait_until="networkidle")
         await pg.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        await pg.evaluate(LOAD_ALL)
         await pg.emulate_media(media="print", color_scheme="light")
         title = await pg.title()
         rtype = await pg.evaluate("(document.querySelector('meta[name=ko-report-type]') || {}).content || ''")

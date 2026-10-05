@@ -15,6 +15,17 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+LOAD_ALL = """async () => {
+  // 그림은 loading="lazy" 라 화면 밖 것은 아직 안 불렸다. 모두 즉시 불러 다 그린 뒤 찍는다.
+  const imgs = [...document.images];
+  imgs.forEach(i => { i.loading = 'eager'; });
+  await Promise.all(imgs.map(i => (i.complete && i.naturalWidth) ? null
+    : new Promise(r => { i.addEventListener('load', r, {once: true}); i.addEventListener('error', r, {once: true}); })));
+  await Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => null) : null));
+  return imgs.filter(i => !i.naturalWidth).length;
+}"""
+
+
 PROBE = r"""() => {
   const vw = document.documentElement.clientWidth, out = {overflow: 0, wide: [], narrow: [], scroll: []};
   out.overflow = document.documentElement.scrollWidth - vw;
@@ -63,7 +74,11 @@ async def run(src: Path, folder: Path, widths: list[int], dark: bool) -> int:
                                       color_scheme="dark" if dark else "light")
             pg = await ctx.new_page()
             await pg.goto(src.resolve().as_uri(), wait_until="networkidle")
+            broken = await pg.evaluate(LOAD_ALL)
             await pg.wait_for_timeout(300)
+            if broken:
+                problems += broken
+                print(f"WARN  불러오지 못한 그림 {broken}개")
             shot = folder / f"{src.stem}_{w}{'_dark' if dark else ''}.png"
             await pg.screenshot(path=str(shot), full_page=True)
             r = await pg.evaluate(PROBE)
