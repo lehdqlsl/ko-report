@@ -1,0 +1,9 @@
+# 예시 캡처 목록. examples/qa/mock 을 로컬 서버로 띄운 뒤 찍는다:
+#   python3 -m http.server 8765 -d mock
+#   uv run --with playwright python ../../plugins/ko-report/skills/report/scripts/capture.py shots.txt -o shots/
+checkout_default | http://localhost:8765/checkout.html | main | 1100
+coupon_bug | http://localhost:8765/checkout.html?state=coupon-bug | #summary | 1100
+zip_bug | http://localhost:8765/checkout.html?state=zip-bug | #form | 1100
+# mobile_banner 는 화면 전체를 찍은 뒤 주문 요약과 하단 배너가 보이는 아래쪽만 잘라 씀
+mobile_banner | http://localhost:8765/checkout.html | | 390
+order_done | http://localhost:8765/checkout.html?state=done | main | 1100

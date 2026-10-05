@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="generator" content="ko-report">
+<title>10/2 솔방울마켓 주문 확인 메일 지연 장애 보고</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* ko-report 디자인 시스템 — 이 파일이 유일한 스타일 정본이다. 보고서 원고(md)에는 스타일을 쓰지 않는다.
+   레이아웃: 화면에서도 A4 한 장처럼 보이는 문서형 한 단(폭 794px = A4 96dpi). 목차는 제목 아래 한 줄.
+   같은 HTML 을 인쇄·PDF 로 내면 그대로 A4 가 된다(scripts/pdf.py). */
+:root {
+  --bg: #F5F6F8;
+  --paper: #FFFFFF;
+  --ink: #1B2430;
+  --muted: #5A6472;
+  --line: #DCE1E7;
+  --accent: #1F3864;
+  --accent-soft: #E8EDF5;
+  --ok: #17663F;   --ok-bg: #E4F3EA;
+  --warn: #8A5300; --warn-bg: #FCF0DC;
+  --bad: #A8231B;  --bad-bg: #FBE7E5;
+  --info: #1D4ED8; --info-bg: #E7EEFD;
+  --font: "Pretendard", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151B; --paper: #171E26; --ink: #E3E8EE; --muted: #9AA5B2; --line: #2B3641;
+    --accent: #9DB5DE; --accent-soft: #1D2939;
+    --ok: #7FD3A5; --ok-bg: #15302A; --warn: #F0C46A; --warn-bg: #362B14;
+    --bad: #F2A29C; --bad-bg: #3A1D1D; --info: #9DB8FF; --info-bg: #1B2540;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10151B; --paper: #171E26; --ink: #E3E8EE; --muted: #9AA5B2; --line: #2B3641;
+  --accent: #9DB5DE; --accent-soft: #1D2939;
+  --ok: #7FD3A5; --ok-bg: #15302A; --warn: #F0C46A; --warn-bg: #362B14;
+  --bad: #F2A29C; --bad-bg: #3A1D1D; --info: #9DB8FF; --info-bg: #1B2540;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font);
+  font-size: 16px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased; padding-inline: 16px; padding-block: 32px 64px;
+}
+.wrap { max-width: 794px; margin: 0 auto; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 56px 60px 48px; }
+nav.toc { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+nav.toc p { display: inline; margin: 0 8px 0 0; font-weight: 600; }
+nav.toc ol { display: inline; list-style: none; margin: 0; padding: 0; }
+nav.toc li { display: inline; }
+nav.toc li + li::before { content: "·"; margin: 0 6px; color: var(--line); }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); text-decoration: underline; outline: none; }
+main { display: grid; gap: 30px; }
+
+header.doc { display: grid; gap: 10px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); }
+.eyebrow { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
+.badge { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.badge.internal { background: var(--warn-bg); color: var(--warn); }
+h1 { margin: 0; font-size: clamp(26px, 3.6vw, 34px); font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; text-wrap: balance; }
+.meta { margin: 0; font-size: 14px; color: var(--muted); }
+
+section.sec { display: grid; gap: 14px; scroll-margin-top: 24px; }
+section.sec.lead { background: var(--accent-soft); border-radius: 8px; padding: 20px 22px; }
+section.sec.lead .tile { background: var(--paper); }
+h2 { margin: 0; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 20px; font-weight: 700; line-height: 1.4; letter-spacing: -0.015em; color: var(--accent); display: flex; gap: 10px; align-items: baseline; text-wrap: balance; }
+h2 .no { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--muted); }
+h3 { margin: 8px 0 0; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; max-width: 72ch; text-wrap: pretty; }
+section.sec > ul, section.sec > ol { margin: 0; padding-left: 1.15em; display: grid; gap: 8px; max-width: 72ch; }
+li::marker { color: var(--muted); }
+strong { font-weight: 600; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+pre { margin: 0; overflow-x: auto; background: var(--accent-soft); padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; }
+pre code { background: none; padding: 0; }
+
+/* 표 */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; line-height: 1.65; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--line); }
+thead th { border-top: 0; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; white-space: nowrap; }
+tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--accent-soft) 35%, transparent); }
+td:first-child { font-weight: 600; }
+td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* 상태 딱지 */
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { color: var(--ok); background: var(--ok-bg); }
+.pill.warn { color: var(--warn); background: var(--warn-bg); }
+.pill.bad { color: var(--bad); background: var(--bad-bg); }
+.pill.info { color: var(--info); background: var(--info-bg); }
+
+/* 숫자 타일 */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; background: var(--paper); border-top: 3px solid var(--accent); }
+.tile.ok { border-top-color: var(--ok); } .tile.warn { border-top-color: var(--warn); } .tile.bad { border-top-color: var(--bad); } .tile.info { border-top-color: var(--info); }
+.tile b { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.tile span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+/* 강조 상자 */
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; display: grid; gap: 6px; }
+.callout.ok { border-color: var(--ok); background: var(--ok-bg); } .callout.warn { border-color: var(--warn); background: var(--warn-bg); }
+.callout.bad { border-color: var(--bad); background: var(--bad-bg); } .callout.info { border-color: var(--info); background: var(--info-bg); }
+.callout p { max-width: none; }
+
+/* 캡처 */
+figure { margin: 0; display: grid; gap: 6px; }
+figure img { width: 100%; height: auto; max-height: 560px; object-fit: contain; object-position: top center; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: zoom-in; }
+figcaption { font-size: 13.5px; color: var(--muted); }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.lightbox { position: fixed; inset: 0; background: rgba(10, 14, 20, 0.86); display: grid; place-items: center; padding: 24px; z-index: 10; cursor: zoom-out; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; background: #fff; }
+
+/* 결함 카드 (QA) */
+.defect { border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 8px; padding: 14px 18px; display: grid; gap: 10px; }
+.defect.ok { border-left-color: var(--ok); } .defect.warn { border-left-color: var(--warn); }
+.defect .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.defect .id { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.defect .ttl { font-weight: 600; }
+.defect dl { margin: 0; display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 6px 14px; font-size: 14.5px; }
+.defect dt { color: var(--muted); font-weight: 600; }
+.defect dd { margin: 0; min-width: 0; }
+.defect figure { max-width: 640px; }
+.defect figure img { max-height: 380px; }
+
+/* 막대 그래프 */
+.bars { display: grid; gap: 8px; }
+.bars .cap { font-weight: 600; font-size: 14.5px; }
+.bar { display: grid; grid-template-columns: minmax(6em, 14em) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; }
+.bar .track { height: 12px; background: var(--accent-soft); border-radius: 6px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent); border-radius: 6px; }
+.bar.ok .fill { background: var(--ok); } .bar.warn .fill { background: var(--warn); } .bar.bad .fill { background: var(--bad); }
+.bar .v { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+
+footer { font-size: 12.5px; color: var(--muted); padding-top: 14px; border-top: 1px solid var(--line); }
+
+@media (max-width: 860px) {
+  .wrap { padding: 32px 22px; border-radius: 0; border-inline: 0; }
+}
+@media (max-width: 560px) {
+  body { font-size: 15.5px; padding: 0; }
+  .wrap { padding: 24px 16px; border: 0; }
+  section.sec.lead { padding: 16px; }
+  table { font-size: 14px; } th, td { padding: 9px 11px; }
+  .bar { grid-template-columns: minmax(0, 1fr) auto; } .bar .track { grid-column: 1 / -1; grid-row: 2; }
+  .defect dl { grid-template-columns: minmax(0, 1fr); } .defect dt { margin-top: 4px; }
+}
+
+/* 인쇄·PDF: 같은 문서를 A4 로. 화면 테마와 관계없이 밝은 색으로 낸다. */
+@media print {
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+    --bg: #FFFFFF; --paper: #FFFFFF; --ink: #1B2430; --muted: #5A6472; --line: #DCE1E7;
+    --accent: #1F3864; --accent-soft: #EEF2F8;
+    --ok: #17663F; --ok-bg: #E4F3EA; --warn: #8A5300; --warn-bg: #FCF0DC;
+    --bad: #A8231B; --bad-bg: #FBE7E5; --info: #1D4ED8; --info-bg: #E7EEFD;
+    color-scheme: light;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: #fff; padding: 0; font-size: 10.5pt; line-height: 1.7; }
+  .wrap { max-width: none; border: 0; padding: 0; }
+  main { gap: 20pt; }
+  nav.toc a { color: inherit; }
+  figure img { max-height: 110mm; cursor: auto; }
+  .defect figure img { max-height: 80mm; }
+  .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  figure, .tiles, .tile, .defect, tr, .callout, .bar, .bars { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  thead { display: table-header-group; }
+  .lightbox { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main>
+    <header class="doc">
+      <p class="eyebrow">장애 보고 <span class="badge internal">내부용</span></p>
+      <h1>10/2 솔방울마켓 주문 확인 메일 지연 장애 보고</h1>
+      <p class="meta">2026-10-05 · 플랫폼팀 · 메일 발송 로그와 모니터링 화면 · 시각은 한국 시간</p>
+      <nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#s1">1 결론</a></li><li><a href="#s2">2 경과</a></li><li><a href="#s3">3 대기열은 19:40에 가장 길었음</a></li><li><a href="#s4">4 원인</a></li><li><a href="#s5">5 조치와 재발 방지</a></li></ol></nav>
+      
+    </header>
+<section class="sec lead" id="s1">
+<h2><span class="no">1</span>결론</h2>
+<div class="tiles"><div class="tile bad"><b>47분</b><span>영향 시간(19:12~19:59)</span></div><div class="tile warn"><b>1,284건</b><span>늦게 나간 주문 확인 메일</span></div><div class="tile ok"><b>해결</b><span>현재 상태</span></div></div>
+<ul>
+<li>10/2(금) 19:12부터 47분간 주문 확인 메일이 최대 38분 늦게 발송, 주문과 결제는 정상</li>
+<li>원인은 저녁 할인 행사 주문 급증으로 메일 대기열이 발송 한도(분당 600건)를 넘은 것</li>
+<li>대기열 길이 경보를 10/8까지 추가하고, 발송 한도는 행사 전 미리 올리는 절차로 변경</li>
+</ul>
+
+</section>
+<section class="sec" id="s2">
+<h2><span class="no">2</span>경과</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>시각</th>
+<th>일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19:00</td>
+<td>저녁 할인 행사 시작, 주문 평소의 4배</td>
+</tr>
+<tr>
+<td>19:12</td>
+<td>메일 대기열이 쌓이기 시작</td>
+</tr>
+<tr>
+<td>19:31</td>
+<td>고객센터 문의 3건으로 감지</td>
+</tr>
+<tr>
+<td>19:38</td>
+<td>발송 서버 연결 수 상한을 20에서 60으로 올림</td>
+</tr>
+<tr>
+<td>19:59</td>
+<td>대기열 비움, 정상 발송 확인</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section class="sec" id="s3">
+<h2><span class="no">3</span>대기열은 19:40에 가장 길었음</h2>
+<div class="bars"><div class="cap">메일 대기열에 쌓인 건수(10분 단위, 10/2)</div><div class="bar info"><span>19:10</span><div class="track"><div class="fill" style="width:9.3%"></div></div><span class="v">120</span></div><div class="bar warn"><span>19:20</span><div class="track"><div class="fill" style="width:49.8%"></div></div><span class="v">640</span></div><div class="bar bad"><span>19:30</span><div class="track"><div class="fill" style="width:81.8%"></div></div><span class="v">1,050</span></div><div class="bar bad"><span>19:40</span><div class="track"><div class="fill" style="width:100.0%"></div></div><span class="v">1,284</span></div><div class="bar warn"><span>19:50</span><div class="track"><div class="fill" style="width:31.9%"></div></div><span class="v">410</span></div><div class="bar ok"><span>20:00</span><div class="track"><div class="fill" style="width:1.0%"></div></div><span class="v">0</span></div></div>
+
+</section>
+<section class="sec" id="s4">
+<h2><span class="no">4</span>원인</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>단계</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>직접 원인</td>
+<td>메일 발송 서버의 동시 연결 수가 기본값 20이라 분당 600건 넘게 보내지 못함</td>
+</tr>
+<tr>
+<td>왜</td>
+<td>행사 주문량을 메일 발송 쪽에 미리 알리는 절차가 없음</td>
+</tr>
+<tr>
+<td>왜 못 막았나</td>
+<td>감시 항목이 발송 오류율뿐이고 대기열 길이는 보지 않음</td>
+</tr>
+</tbody>
+</table></div>
+
+</section>
+<section class="sec" id="s5">
+<h2><span class="no">5</span>조치와 재발 방지</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>조치</th>
+<th>담당</th>
+<th>기한</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>연결 수 상한 60으로 상향(임시)</td>
+<td>플랫폼팀</td>
+<td>10/2</td>
+<td><span class="pill ok">완료</span></td>
+</tr>
+<tr>
+<td>대기열 500건 넘으면 경보</td>
+<td>플랫폼팀</td>
+<td>10/8</td>
+<td><span class="pill warn">진행</span></td>
+</tr>
+<tr>
+<td>행사 일정표에 메일 발송 한도 점검 항목 추가</td>
+<td>마케팅팀</td>
+<td>10/12</td>
+<td><span class="pill warn">예정</span></td>
+</tr>
+<tr>
+<td>메일이 늦은 주문 1,284건에 안내 문자 발송</td>
+<td>고객센터</td>
+<td>10/3</td>
+<td><span class="pill ok">완료</span></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+    <footer>2026-10-05 · 플랫폼팀 · 메일 발송 로그와 모니터링 화면 · 시각은 한국 시간</footer>
+  </main>
+</div>
+<script>
+document.addEventListener("click", function (e) {
+  var img = e.target.closest("figure img"); var box = document.querySelector(".lightbox");
+  if (box) { box.remove(); return; }
+  if (!img) return;
+  var d = document.createElement("div"); d.className = "lightbox"; d.setAttribute("role", "dialog");
+  var big = document.createElement("img"); big.src = img.src; big.alt = img.alt; d.appendChild(big); document.body.appendChild(d);
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") { var b = document.querySelector(".lightbox"); if (b) b.remove(); } });
+</script>
+</body>
+</html>

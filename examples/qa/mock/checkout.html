@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>솔방울마켓 결제</title>
+<!-- 예시용 가상 쇼핑몰 화면. ?state= 로 상태를 바꿔 캡처한다:
+     default · coupon-bug · zip-bug · mobile · done -->
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #F4F1EA; color: #2A2620; }
+  header { background: #2F4A3A; color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  header small { font-weight: 400; opacity: .8; }
+  main { max-width: 920px; margin: 24px auto; padding: 0 16px; display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+  .card { background: #fff; border: 1px solid #E2DCCF; border-radius: 10px; padding: 20px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  label { display: block; font-size: 13px; color: #6B6355; margin: 10px 0 4px; }
+  input { width: 100%; padding: 9px 10px; border: 1px solid #CFC7B6; border-radius: 6px; font-size: 14px; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; }
+  .btn-s { padding: 9px 14px; border: 1px solid #2F4A3A; color: #2F4A3A; background: #fff; border-radius: 6px; font-size: 14px; white-space: nowrap; }
+  .pay { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pay div { border: 1px solid #CFC7B6; border-radius: 6px; padding: 10px; text-align: center; font-size: 14px; }
+  .pay .on { border: 2px solid #2F4A3A; font-weight: 700; }
+  .item { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
+  .item.muted { color: #6B6355; }
+  .item.discount { color: #B5462E; }
+  .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 18px; border-top: 1px solid #E2DCCF; margin-top: 8px; padding-top: 12px; }
+  .cta { display: block; width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 8px; background: #2F4A3A; color: #fff; font-size: 16px; font-weight: 700; }
+  .ok { font-size: 12px; color: #2F7A4A; margin-top: 4px; }
+  .err-missing { outline: 2px dashed #B5462E; outline-offset: 3px; }
+  .banner { display: none; }
+  .done { text-align: center; padding: 36px 20px; }
+  .done b { font-size: 22px; display: block; margin-bottom: 6px; }
+  @media (max-width: 600px) {
+    main { grid-template-columns: 1fr; margin-top: 12px; }
+    main { padding-bottom: 96px; }
+    .cta { position: fixed; left: 16px; right: 16px; bottom: 16px; width: auto; }
+    .banner { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; background: #E8B44A; padding: 18px 16px 26px; font-size: 14px; font-weight: 700; }
+  }
+</style>
+</head>
+<body>
+<header>솔방울마켓 <small>주문/결제</small></header>
+<main id="app">
+  <section class="card" id="form">
+    <h2>배송지</h2>
+    <label>받는 분</label><input value="홍길동">
+    <label>우편번호</label>
+    <div class="row"><input id="zip" value="06236"><button class="btn-s">주소 찾기</button></div>
+    <label>주소</label><input value="서울시 가나구 다라로 12, 3층">
+    <h2 style="margin-top:20px">결제 수단</h2>
+    <div class="pay"><div class="on">카드</div><div>계좌이체</div><div>간편결제</div></div>
+    <label>쿠폰 코드</label>
+    <div class="row"><input id="coupon" placeholder="코드를 입력하세요"><button class="btn-s">적용</button></div>
+    <div id="couponMsg"></div>
+  </section>
+  <aside class="card" id="summary">
+    <h2>주문 요약</h2>
+    <div class="item"><span>원목 도마 (L)</span><span>32,000원</span></div>
+    <div class="item"><span>린넨 행주 3장</span><span>13,000원</span></div>
+    <div class="item muted"><span>배송비</span><span>3,000원</span></div>
+    <div class="item discount" id="disc" hidden><span>쿠폰 할인</span><span>-4,800원</span></div>
+    <div class="total" id="total"><span>결제 금액</span><span id="amount">48,000원</span></div>
+    <button class="cta" id="cta">48,000원 결제하기</button>
+  </aside>
+</main>
+<div class="banner">첫 주문 무료배송 쿠폰 받기 &gt;</div>
+<script>
+  var s = new URLSearchParams(location.search).get("state") || "default";
+  var $ = function (id) { return document.getElementById(id); };
+  if (s === "coupon-bug") {
+    $("coupon").value = "WELCOME10";
+    $("couponMsg").innerHTML = '<div class="ok">쿠폰이 적용되었습니다 (10% 할인)</div>';
+    $("disc").hidden = false;
+    $("total").classList.add("err-missing");
+  }
+  if (s === "zip-bug") {
+    $("zip").value = "062361";
+  }
+  if (s === "done") {
+    $("app").innerHTML = '<section class="card done" style="grid-column:1/-1"><b>주문이 완료되었습니다</b>' +
+      '<div>주문번호 SB-20261005-0142 · 결제 금액 43,200원</div>' +
+      '<div style="margin-top:6px;color:#6B6355">도착 예정 10월 7일(수)</div></section>';
+  }
+</script>
+</body>
+</html>
